@@ -1,0 +1,29 @@
+# Node modules
+frontend/node_modules/
+node_modules/
+
+# Frontend build output
+frontend/dist/
+frontend/.vite/
+
+# Maven build output
+target/
+
+# IDE / OS
+.vscode/
+.idea/
+*.class
+*.iml
+.DS_Store
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Application secrets
+src/main/resources/application.properties
+
+# Logs
+*.log
+npm-debug.log*
