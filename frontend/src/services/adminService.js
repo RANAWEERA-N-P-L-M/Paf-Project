@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_BASE } from '../config/api'
 import authService from './authService'
 
-const API_URL = 'http://localhost:8081/api/admin'
+const API_URL = `${API_BASE}/admin`
 
 const adminService = {
   getUsers: () =>

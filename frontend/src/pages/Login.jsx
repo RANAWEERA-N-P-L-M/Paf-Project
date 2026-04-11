@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { BACKEND_ORIGIN } from '../config/api'
 import authService from '../services/authService'
 
 function Login() {
@@ -35,7 +36,7 @@ function Login() {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8081/oauth2/authorization/google'
+    window.location.href = `${BACKEND_ORIGIN}/oauth2/authorization/google`
   }
 
   return (

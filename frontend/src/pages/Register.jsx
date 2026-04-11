@@ -32,7 +32,15 @@ function Register() {
       setMessage(res.data.message || 'Registration submitted. Waiting for admin approval.')
       setForm({ name: '', email: '', password: '', role: 'USER' })
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.')
+      const d = err.response?.data
+      const msg =
+        (typeof d === 'string' && d) ||
+        d?.error ||
+        d?.message ||
+        (err.code === 'ERR_NETWORK' || err.message === 'Network Error'
+          ? 'Cannot reach the server. Is the backend running on port 8081? Check the browser address matches CORS (use http://localhost:5173 or http://127.0.0.1:5173).'
+          : null)
+      setError(msg || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }
