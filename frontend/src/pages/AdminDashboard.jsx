@@ -2,11 +2,24 @@
 import { useNavigate } from 'react-router-dom'
 import adminService from '../services/adminService'
 import authService from '../services/authService'
+import catalogueService from '../services/catalogueService'
 
 function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [users, setUsers] = useState([])
+  const [catalogues, setCatalogues] = useState([])
+  const [showCatalogueModal, setShowCatalogueModal] = useState(false)
+  const [editingCatalogueId, setEditingCatalogueId] = useState(null)
+  const [savingCatalogue, setSavingCatalogue] = useState(false)
+  const [catalogueForm, setCatalogueForm] = useState({
+    name: '',
+    type: '',
+    capacity: '',
+    location: '',
+    description: '',
+    status: 'ACTIVE',
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [resetPasswordId, setResetPasswordId] = useState(null)
@@ -32,6 +45,20 @@ function AdminDashboard() {
     }
   }, [navigate])
 
+  const fetchCatalogues = useCallback(async () => {
+    try {
+      const res = await catalogueService.getCatalogues()
+      setCatalogues(res.data)
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        authService.logout()
+        navigate('/login')
+      } else {
+        setError('Failed to load catalogues.')
+      }
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
@@ -40,7 +67,8 @@ function AdminDashboard() {
       return
     }
     fetchUsers()
-  }, [navigate, fetchUsers])
+    fetchCatalogues()
+  }, [navigate, fetchUsers, fetchCatalogues])
 
   const handleApprove = async (id) => {
     try {
@@ -90,6 +118,100 @@ function AdminDashboard() {
     navigate('/login')
   }
 
+  const handleCatalogueChange = (field, value) => {
+    setCatalogueForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const getCatalogueId = (item) => item.id || item._id
+
+  const resetCatalogueForm = () => {
+    setCatalogueForm({
+      name: '',
+      type: '',
+      capacity: '',
+      location: '',
+      description: '',
+      status: 'ACTIVE',
+    })
+    setEditingCatalogueId(null)
+  }
+
+  const openAddCatalogueModal = () => {
+    resetCatalogueForm()
+    setShowCatalogueModal(true)
+  }
+
+  const openEditCatalogueModal = (item) => {
+    setEditingCatalogueId(getCatalogueId(item))
+    setCatalogueForm({
+      name: item.name || '',
+      type: item.type || '',
+      capacity: item.capacity || '',
+      location: item.location || '',
+      description: item.description || '',
+      status: item.status || 'ACTIVE',
+    })
+    setShowCatalogueModal(true)
+  }
+
+  const handleDeleteCatalogue = async (item) => {
+    const catalogueId = getCatalogueId(item)
+    if (!catalogueId) {
+      setError('Unable to delete catalogue: missing catalogue id.')
+      return
+    }
+    if (!window.confirm(`Are you sure you want to delete "${item.name}"?`)) return
+
+    try {
+      setError('')
+      await catalogueService.deleteCatalogue(catalogueId)
+      await fetchCatalogues()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete catalogue.')
+    }
+  }
+
+  const handleSaveCatalogue = async (e) => {
+    e.preventDefault()
+    setError('')
+
+    if (!catalogueForm.name.trim() || !catalogueForm.type.trim() || !catalogueForm.location.trim()) {
+      setError('Please fill name, type, and location.')
+      return
+    }
+
+    const parsedCapacity = Number(catalogueForm.capacity)
+    if (!parsedCapacity || parsedCapacity <= 0) {
+      setError('Capacity must be greater than 0.')
+      return
+    }
+
+    try {
+      setSavingCatalogue(true)
+      const payload = {
+        name: catalogueForm.name,
+        type: catalogueForm.type,
+        capacity: parsedCapacity,
+        location: catalogueForm.location,
+        description: catalogueForm.description,
+        status: catalogueForm.status,
+      }
+
+      if (editingCatalogueId) {
+        await catalogueService.updateCatalogue(editingCatalogueId, payload)
+      } else {
+        await catalogueService.createCatalogue(payload)
+      }
+      await fetchCatalogues()
+      setShowCatalogueModal(false)
+      resetCatalogueForm()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save catalogue.')
+    } finally {
+      setSavingCatalogue(false)
+    }
+  }
+
   const roleBadge = (role) => {
     const map = {
       ADMIN: 'bg-purple-100 text-purple-700',
@@ -108,6 +230,14 @@ function AdminDashboard() {
     return map[status] ?? 'bg-gray-100 text-gray-600'
   }
 
+  const catalogueStatusBadge = (status) => {
+    const map = {
+      ACTIVE: 'bg-green-100 text-green-700',
+      OUT_OF_SERVICE: 'bg-red-100 text-red-700',
+    }
+    return map[status] ?? 'bg-gray-100 text-gray-600'
+  }
+
   const navItems = [
     { key: 'dashboard', label: 'Main Dashboard', icon: '📊' },
     { key: 'users', label: 'Users', icon: '👥' },
@@ -121,6 +251,9 @@ function AdminDashboard() {
   const switchSection = (sectionKey) => {
     setActiveSection(sectionKey)
     setIsMenuOpen(false)
+    if (sectionKey === 'facilities') {
+      fetchCatalogues()
+    }
   }
 
   const summaryCards = [
@@ -377,6 +510,66 @@ function AdminDashboard() {
     </div>
   )
 
+  const renderFacilitiesSection = () => (
+    <>
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-textPrimary">Facilities & Catalogues</h2>
+          <p className="text-sm text-textSecondary mt-1">Manage all facility catalogues in one place.</p>
+        </div>
+        <button
+          onClick={openAddCatalogueModal}
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+        >
+          Add Catalogue
+        </button>
+      </div>
+
+      {catalogues.length === 0 ? (
+        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
+          <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {catalogues.map((item, idx) => (
+            <div key={item.id || item._id || `${item.name}-${idx}`} className="border border-borderColor rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h3 className="text-base font-semibold text-textPrimary leading-tight">{item.name}</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditCatalogueModal(item)}
+                    title="Edit catalogue"
+                    className="w-7 h-7 rounded-md border border-borderColor text-sm text-textSecondary hover:text-primary hover:border-primary/40 hover:bg-slate-50 transition"
+                  >
+                    ✏
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCatalogue(item)}
+                    title="Delete catalogue"
+                    className="w-7 h-7 rounded-md border border-borderColor text-sm text-textSecondary hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition"
+                  >
+                    🗑
+                  </button>
+                </div>
+              </div>
+              <div className="mb-2">
+                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${catalogueStatusBadge(item.status)}`}>
+                  {item.status}
+                </span>
+              </div>
+              <p className="text-xs text-textSecondary mb-1"><span className="font-semibold">Type:</span> {item.type}</p>
+              <p className="text-xs text-textSecondary mb-1"><span className="font-semibold">Capacity:</span> {item.capacity}</p>
+              <p className="text-xs text-textSecondary mb-2"><span className="font-semibold">Location:</span> {item.location}</p>
+              {item.description && (
+                <p className="text-xs text-textSecondary border-t border-borderColor pt-2">{item.description}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+
   const renderMainDashboard = () => (
     <>
       <h2 className="text-2xl font-bold text-textPrimary mb-6">Main Dashboard</h2>
@@ -406,7 +599,7 @@ function AdminDashboard() {
   const renderSectionContent = () => {
     if (activeSection === 'users') return renderUsersSection()
     if (activeSection === 'facilities') {
-      return renderPlaceholder('Facilities & Catalogues', 'Manage facilities and catalogues from here.')
+      return renderFacilitiesSection()
     }
     if (activeSection === 'bookings') {
       return renderPlaceholder('Bookings', 'View and manage all booking records on this page.')
@@ -490,6 +683,117 @@ function AdminDashboard() {
           </section>
         </div>
       </main>
+
+      {showCatalogueModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-borderColor p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-textPrimary">{editingCatalogueId ? 'Edit Catalogue' : 'Add Catalogue'}</h3>
+              <button
+                onClick={() => {
+                  setShowCatalogueModal(false)
+                  resetCatalogueForm()
+                }}
+                className="text-textSecondary hover:text-textPrimary text-sm font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCatalogue} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-textSecondary mb-1">Name</label>
+                <input
+                  type="text"
+                  value={catalogueForm.name}
+                  onChange={(e) => handleCatalogueChange('name', e.target.value)}
+                  className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Lecture Hall A"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-textSecondary mb-1">Type</label>
+                  <input
+                    type="text"
+                    value={catalogueForm.type}
+                    onChange={(e) => handleCatalogueChange('type', e.target.value)}
+                    className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Lab"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-textSecondary mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={catalogueForm.capacity}
+                    onChange={(e) => handleCatalogueChange('capacity', e.target.value)}
+                    className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="40"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-textSecondary mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={catalogueForm.location}
+                    onChange={(e) => handleCatalogueChange('location', e.target.value)}
+                    className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Engineering Building"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-textSecondary mb-1">Status</label>
+                  <select
+                    value={catalogueForm.status}
+                    onChange={(e) => handleCatalogueChange('status', e.target.value)}
+                    className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="OUT_OF_SERVICE">OUT OF SERVICE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-textSecondary mb-1">Description</label>
+                <textarea
+                  value={catalogueForm.description}
+                  onChange={(e) => handleCatalogueChange('description', e.target.value)}
+                  className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  rows={3}
+                  placeholder="Optional notes about this facility..."
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCatalogueModal(false)
+                    resetCatalogueForm()
+                  }}
+                  className="px-4 py-2 rounded-lg border border-borderColor text-sm font-semibold text-textSecondary hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCatalogue}
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+                >
+                  {savingCatalogue ? 'Saving...' : (editingCatalogueId ? 'Update Catalogue' : 'Save Catalogue')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
