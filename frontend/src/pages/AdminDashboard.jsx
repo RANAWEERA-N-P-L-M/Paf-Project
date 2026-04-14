@@ -516,6 +516,9 @@ function AdminDashboard() {
         <div>
           <h2 className="text-xl font-semibold text-textPrimary">Facilities & Catalogues</h2>
           <p className="text-sm text-textSecondary mt-1">Manage all facility catalogues in one place.</p>
+          <p className="text-xs text-textSecondary mt-2">
+            {catalogues.length} catalogue{catalogues.length !== 1 ? 's' : ''} available
+          </p>
         </div>
         <button
           onClick={openAddCatalogueModal}
@@ -530,38 +533,61 @@ function AdminDashboard() {
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {catalogues.map((item, idx) => (
-            <div key={item.id || item._id || `${item.name}-${idx}`} className="border border-borderColor rounded-xl bg-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <h3 className="text-base font-semibold text-textPrimary leading-tight">{item.name}</h3>
+            <div
+              key={item.id || item._id || `${item.name}-${idx}`}
+              className="group border border-borderColor rounded-2xl bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-textPrimary leading-tight truncate">{item.name}</h3>
+                  <p className="text-xs text-textSecondary mt-1">Facility #{idx + 1}</p>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openEditCatalogueModal(item)}
                     title="Edit catalogue"
-                    className="w-7 h-7 rounded-md border border-borderColor text-sm text-textSecondary hover:text-primary hover:border-primary/40 hover:bg-slate-50 transition"
+                    className="px-2.5 py-1.5 rounded-lg border border-borderColor text-xs font-semibold text-textSecondary hover:text-primary hover:border-primary/40 hover:bg-slate-50 transition"
                   >
-                    ✏
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDeleteCatalogue(item)}
                     title="Delete catalogue"
-                    className="w-7 h-7 rounded-md border border-borderColor text-sm text-textSecondary hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition"
+                    className="px-2.5 py-1.5 rounded-lg border border-borderColor text-xs font-semibold text-textSecondary hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition"
                   >
-                    🗑
+                    Delete
                   </button>
                 </div>
               </div>
-              <div className="mb-2">
-                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${catalogueStatusBadge(item.status)}`}>
-                  {item.status}
+
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-textSecondary uppercase tracking-wide">Status</span>
+                <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${catalogueStatusBadge(item.status)}`}>
+                  {item.status || 'UNKNOWN'}
                 </span>
               </div>
-              <p className="text-xs text-textSecondary mb-1"><span className="font-semibold">Type:</span> {item.type}</p>
-              <p className="text-xs text-textSecondary mb-1"><span className="font-semibold">Capacity:</span> {item.capacity}</p>
-              <p className="text-xs text-textSecondary mb-2"><span className="font-semibold">Location:</span> {item.location}</p>
+
+              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                <div className="bg-slate-50 border border-borderColor rounded-lg p-2">
+                  <p className="text-textSecondary">Type</p>
+                  <p className="font-semibold text-textPrimary mt-0.5 truncate">{item.type || '-'}</p>
+                </div>
+                <div className="bg-slate-50 border border-borderColor rounded-lg p-2">
+                  <p className="text-textSecondary">Capacity</p>
+                  <p className="font-semibold text-textPrimary mt-0.5">{item.capacity || '-'}</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-textSecondary mb-2">
+                <span className="font-semibold">Location:</span> {item.location || '-'}
+              </div>
+
               {item.description && (
-                <p className="text-xs text-textSecondary border-t border-borderColor pt-2">{item.description}</p>
+                <p className="text-xs text-textSecondary border-t border-borderColor pt-3 leading-relaxed">
+                  {item.description}
+                </p>
               )}
             </div>
           ))}

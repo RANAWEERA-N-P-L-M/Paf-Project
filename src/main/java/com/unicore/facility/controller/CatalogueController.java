@@ -21,28 +21,31 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/catalogues")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class CatalogueController {
 
     private final CatalogueService catalogueService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','USER','TECHNICIAN')")
     public ResponseEntity<List<Catalogue>> getAllCatalogues() {
         return ResponseEntity.ok(catalogueService.getAllCatalogues());
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Catalogue> createCatalogue(@RequestBody CreateCatalogueRequest request) {
         return ResponseEntity.ok(catalogueService.createCatalogue(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Catalogue> updateCatalogue(@PathVariable String id,
                                                      @RequestBody CreateCatalogueRequest request) {
         return ResponseEntity.ok(catalogueService.updateCatalogue(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> deleteCatalogue(@PathVariable String id) {
         catalogueService.deleteCatalogue(id);
         return ResponseEntity.ok(Map.of("message", "Catalogue deleted successfully."));
