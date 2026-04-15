@@ -145,6 +145,13 @@ function Dashboard() {
                   {item.description}
                 </p>
               )}
+
+              <button
+                type="button"
+                className="mt-3 w-full px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition"
+              >
+                Booking
+              </button>
             </div>
           ))}
         </div>
