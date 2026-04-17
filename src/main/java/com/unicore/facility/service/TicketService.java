@@ -152,6 +152,40 @@ public class TicketService {
         return response;
     }
 
+    public List<TicketDashboardResponse> getMyTickets(String authenticatedEmail) {
+        if (isBlank(authenticatedEmail) || "anonymousUser".equalsIgnoreCase(authenticatedEmail)) {
+            throw new ValidationException("Authenticated user is required.");
+        }
+
+        User currentUser = userRepository.findByEmail(authenticatedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
+
+        Query query = new Query()
+                .addCriteria(Criteria.where("createdBy").is(currentUser))
+                .with(Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        List<Ticket> tickets = mongoTemplate.find(query, Ticket.class);
+        if (tickets.isEmpty()) {
+            return List.of();
+        }
+
+        List<TechnicianAssignment> assignments = technicianAssignmentRepository.findByTicketIn(tickets);
+        Map<String, List<AssignedTechnicianDto>> assignmentsByTicketId = mapAssignmentsByTicketId(assignments);
+
+        List<TicketDashboardResponse> response = new ArrayList<>();
+        for (Ticket ticket : tickets) {
+            response.add(new TicketDashboardResponse(
+                    ticket.getId(),
+                    ticket.getTitle(),
+                    ticket.getDescription(),
+                    ticket.getStatus(),
+                    ticket.getCreatedAt(),
+                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())
+            ));
+        }
+        return response;
+    }
+
     private User resolveCreatedBy(CreateTicketRequest request, String authenticatedEmail) {
         if (!isBlank(authenticatedEmail) && !"anonymousUser".equalsIgnoreCase(authenticatedEmail)) {
             return userRepository.findByEmail(authenticatedEmail)
@@ -196,10 +230,12 @@ public class TicketService {
             User technician = assignment.getTechnician();
 
             AssignedTechnicianDto dto = new AssignedTechnicianDto(
+                    assignment.getId(),
                     technician != null ? technician.getId() : null,
                     technician != null ? technician.getName() : null,
                     technician != null ? technician.getEmail() : null,
-                    assignment.getStatus()
+                    assignment.getStatus(),
+                    assignment.getRejectionReason()
             );
 
             grouped.computeIfAbsent(ticketId, key -> new ArrayList<>()).add(dto);

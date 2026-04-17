@@ -1,6 +1,8 @@
 package com.unicore.facility.service;
 
+import com.unicore.entity.User;
 import com.unicore.facility.dto.RejectAssignmentRequest;
+import com.unicore.facility.dto.TechnicianTaskResponse;
 import com.unicore.facility.dto.UpdateAssignmentStatusRequest;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
@@ -8,14 +10,55 @@ import com.unicore.facility.exception.InvalidStatusTransitionException;
 import com.unicore.facility.exception.ResourceNotFoundException;
 import com.unicore.facility.exception.ValidationException;
 import com.unicore.facility.repository.TechnicianAssignmentRepository;
+import com.unicore.facility.repository.TicketRepository;
+import com.unicore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class TechnicianAssignmentService {
 
     private final TechnicianAssignmentRepository technicianAssignmentRepository;
+    private final TicketRepository ticketRepository;
+    private final UserRepository userRepository;
+
+    public List<TechnicianTaskResponse> getMyTasks(String authenticatedEmail) {
+        if (isBlank(authenticatedEmail) || "anonymousUser".equalsIgnoreCase(authenticatedEmail)) {
+            throw new ValidationException("Authenticated technician is required.");
+        }
+
+        User technician = userRepository.findByEmail(authenticatedEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
+
+        if (technician.getRole() != User.Role.TECHNICIAN && technician.getRole() != User.Role.ADMIN) {
+            throw new ValidationException("Only technicians can fetch technician tasks.");
+        }
+
+        List<TechnicianAssignment> assignments = technicianAssignmentRepository.findByTechnician(technician);
+        List<TechnicianTaskResponse> response = new ArrayList<>();
+
+        for (TechnicianAssignment assignment : assignments) {
+            Ticket ticket = assignment.getTicket();
+            response.add(new TechnicianTaskResponse(
+                    assignment.getId(),
+                    ticket != null ? ticket.getId() : null,
+                    ticket != null ? ticket.getTitle() : null,
+                    ticket != null ? ticket.getDescription() : null,
+                    assignment.getStatus(),
+                    assignment.getRejectionReason(),
+                    ticket != null ? ticket.getCreatedAt() : null
+            ));
+        }
+
+        response.sort(Comparator.comparing(TechnicianTaskResponse::getCreatedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return response;
+    }
 
     public TechnicianAssignment acceptTask(String assignmentId) {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
@@ -26,7 +69,9 @@ public class TechnicianAssignmentService {
 
         assignment.setStatus(Ticket.Status.IN_PROGRESS);
         assignment.setRejectionReason(null);
-        return technicianAssignmentRepository.save(assignment);
+        TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
+        syncTicketStatus(saved);
+        return saved;
     }
 
     public TechnicianAssignment rejectTask(String assignmentId, RejectAssignmentRequest request) {
@@ -42,7 +87,9 @@ public class TechnicianAssignmentService {
 
         assignment.setStatus(Ticket.Status.REJECTED);
         assignment.setRejectionReason(request.getRejectionReason().trim());
-        return technicianAssignmentRepository.save(assignment);
+        TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
+        syncTicketStatus(saved);
+        return saved;
     }
 
     public TechnicianAssignment updateStatus(String assignmentId, UpdateAssignmentStatusRequest request) {
@@ -57,7 +104,9 @@ public class TechnicianAssignmentService {
 
         assignment.setStatus(targetStatus);
         assignment.setRejectionReason(null);
-        return technicianAssignmentRepository.save(assignment);
+        TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
+        syncTicketStatus(saved);
+        return saved;
     }
 
     private TechnicianAssignment getAssignmentOrThrow(String assignmentId) {
@@ -93,5 +142,16 @@ public class TechnicianAssignmentService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private void syncTicketStatus(TechnicianAssignment assignment) {
+        if (assignment == null || assignment.getTicket() == null) {
+            return;
+        }
+        Ticket ticket = assignment.getTicket();
+        if (ticket.getStatus() != assignment.getStatus()) {
+            ticket.setStatus(assignment.getStatus());
+            ticketRepository.save(ticket);
+        }
     }
 }

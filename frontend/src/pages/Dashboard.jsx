@@ -298,6 +298,19 @@ function Dashboard() {
                       <button
                         key={item.title}
                         type="button"
+                        onClick={() => {
+                          if (!istechnician && item.title === 'Create New Request') {
+                            navigate('/tickets/create')
+                            return
+                          }
+                          if (!istechnician && item.title === 'Track My Requests') {
+                            navigate('/tickets/my')
+                            return
+                          }
+                          if (istechnician && item.title === 'Start Next Task') {
+                            navigate('/technician/tasks')
+                          }
+                        }}
                         className="w-full text-left border border-borderColor rounded-xl p-3 hover:bg-hoverGray hover:border-primary/20 transition duration-200"
                       >
                         <p className="text-sm font-semibold text-textPrimary">{item.title}</p>

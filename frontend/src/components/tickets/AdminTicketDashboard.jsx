@@ -40,8 +40,8 @@ function AdminTicketDashboard({ technicians = [] }) {
     toDate: '',
   })
 
-  const fetchTickets = useCallback(async () => {
-    setLoading(true)
+  const fetchTickets = useCallback(async (options = {}) => {
+    if (!options.silent) setLoading(true)
     setError('')
     try {
       const response = await ticketService.getAllTickets(filters)
@@ -49,12 +49,20 @@ function AdminTicketDashboard({ technicians = [] }) {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load tickets.')
     } finally {
-      setLoading(false)
+      if (!options.silent) setLoading(false)
     }
   }, [filters])
 
   useEffect(() => {
     fetchTickets()
+  }, [fetchTickets])
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchTickets({ silent: true })
+    }, 6000)
+
+    return () => clearInterval(intervalId)
   }, [fetchTickets])
 
   const onFilterChange = (field, value) => {
@@ -153,7 +161,14 @@ function AdminTicketDashboard({ technicians = [] }) {
                       <div className="space-y-1">
                         {ticket.assignedTechnicians.map((tech) => (
                           <div key={`${ticket.id}-${tech.technicianId}`} className="text-xs">
-                            {tech.name || tech.email || tech.technicianId} ({tech.assignmentStatus || 'OPEN'})
+                            <span>
+                              {tech.name || tech.email || tech.technicianId} ({tech.assignmentStatus || 'OPEN'})
+                            </span>
+                            {tech.rejectionReason && (
+                              <div className="text-[11px] text-red-600 mt-0.5">
+                                Reason: {tech.rejectionReason}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -177,4 +192,3 @@ function AdminTicketDashboard({ technicians = [] }) {
 }
 
 export default AdminTicketDashboard
-

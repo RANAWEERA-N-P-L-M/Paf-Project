@@ -6,6 +6,7 @@ import AdminDashboard from '../pages/AdminDashboard'
 import Dashboard from '../pages/Dashboard'
 import CreateTicketPage from '../pages/CreateTicketPage'
 import TechnicianTasksPage from '../pages/TechnicianTasksPage'
+import MyRaisedTicketsPage from '../pages/MyRaisedTicketsPage'
 
 function AppRoutes() {
   return (
@@ -18,6 +19,7 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/tickets/create" element={<CreateTicketPage />} />
+        <Route path="/tickets/my" element={<MyRaisedTicketsPage />} />
         <Route path="/technician/tasks" element={<TechnicianTasksPage />} />
       </Routes>
     </BrowserRouter>

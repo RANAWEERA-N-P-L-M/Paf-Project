@@ -5,20 +5,25 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssignedTechnicianDto {
+public class TechnicianTaskResponse {
 
     private String assignmentId;
 
-    private String technicianId;
+    private String ticketId;
 
-    private String name;
+    private String ticketTitle;
 
-    private String email;
+    private String ticketDescription;
 
-    private Ticket.Status assignmentStatus;
+    private Ticket.Status status;
 
     private String rejectionReason;
+
+    private Instant createdAt;
 }
+

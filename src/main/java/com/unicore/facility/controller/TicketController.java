@@ -47,6 +47,13 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketsForAdmin(status, fromDate, toDate));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('ADMIN','USER','TECHNICIAN')")
+    public ResponseEntity<List<TicketDashboardResponse>> getMyTickets(Authentication authentication) {
+        String authenticatedEmail = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(ticketService.getMyTickets(authenticatedEmail));
+    }
+
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<TechnicianAssignment>> assignTicket(@PathVariable("id") String ticketId,

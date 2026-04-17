@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import ticketService from '../../services/ticketService'
+import useCurrentUser from '../../hooks/useCurrentUser'
 
 function TicketCreateForm() {
+  const currentUser = useCurrentUser()
   const [form, setForm] = useState({ title: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -23,10 +25,14 @@ function TicketCreateForm() {
 
     try {
       setSubmitting(true)
-      await ticketService.createTicket({
+      const payload = {
         title: form.title.trim(),
         description: form.description.trim(),
-      })
+      }
+      if (currentUser.id) {
+        payload.userId = currentUser.id
+      }
+      await ticketService.createTicket(payload)
       setForm({ title: '', description: '' })
       setSuccessMessage('Ticket created successfully.')
     } catch (error) {
@@ -94,4 +100,3 @@ function TicketCreateForm() {
 }
 
 export default TicketCreateForm
-

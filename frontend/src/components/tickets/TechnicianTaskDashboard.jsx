@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ticketService from '../../services/ticketService'
-import useCurrentUser from '../../hooks/useCurrentUser'
 import RejectTaskModal from './RejectTaskModal'
 
 const STATUS_COLORS = {
@@ -21,7 +20,7 @@ const canMoveToResolved = (task) => task.status === 'IN_PROGRESS' && Boolean(tas
 const canMoveToClosed = (task) => task.status === 'RESOLVED' && Boolean(task.assignmentId)
 
 function TechnicianTaskDashboard() {
-  const currentUser = useCurrentUser()
+  const initialized = useRef(false)
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -32,45 +31,27 @@ function TechnicianTaskDashboard() {
     setLoading(true)
     setError('')
     try {
-      const response = await ticketService.getAllTickets()
-      const allTickets = response.data || []
-      const taskList = []
-
-      allTickets.forEach((ticket) => {
-        const assignments = ticket.assignedTechnicians || []
-        assignments.forEach((assignment) => {
-          const technicianId = assignment.technicianId || assignment.id || ''
-          const technicianEmail = assignment.email || ''
-          const belongsToCurrentUser =
-            (currentUser.id && technicianId === currentUser.id) ||
-            (currentUser.email && technicianEmail === currentUser.email)
-
-          if (!belongsToCurrentUser) return
-
-          taskList.push({
-            assignmentId: assignment.assignmentId || assignment.id || null,
-            ticketId: ticket.id,
-            ticketTitle: ticket.title,
-            technicianId,
-            technicianName: assignment.name || assignment.email || 'Technician',
-            status: normalizeAssignmentStatus(assignment),
-            createdAt: ticket.createdAt,
-          })
-        })
-      })
-
+      const response = await ticketService.getMyAssignments()
+      const taskList = (response.data || []).map((task) => ({
+        assignmentId: task.assignmentId || null,
+        ticketId: task.ticketId || '',
+        ticketTitle: task.ticketTitle || 'Untitled Ticket',
+        status: normalizeAssignmentStatus(task),
+        createdAt: task.createdAt,
+      }))
       setTasks(taskList)
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          'Unable to load tasks. Current API only allows admin ticket listing.'
+        err.response?.data?.error || 'Unable to load assigned tasks right now.'
       )
     } finally {
       setLoading(false)
     }
-  }, [currentUser.email, currentUser.id])
+  }, [])
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
     loadTasks()
   }, [loadTasks])
 
@@ -136,7 +117,7 @@ function TechnicianTaskDashboard() {
         <div className="space-y-3">
           {tasks.map((task) => (
             <div
-              key={`${task.ticketId}-${task.technicianId}`}
+              key={task.assignmentId || task.ticketId}
               className="border border-borderColor rounded-xl p-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
