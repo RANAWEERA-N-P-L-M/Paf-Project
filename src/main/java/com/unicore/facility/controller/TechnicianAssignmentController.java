@@ -1,0 +1,42 @@
+package com.unicore.facility.controller;
+
+import com.unicore.facility.dto.RejectAssignmentRequest;
+import com.unicore.facility.dto.UpdateAssignmentStatusRequest;
+import com.unicore.facility.entity.TechnicianAssignment;
+import com.unicore.facility.service.TechnicianAssignmentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/assignments")
+@RequiredArgsConstructor
+public class TechnicianAssignmentController {
+
+    private final TechnicianAssignmentService technicianAssignmentService;
+
+    @PutMapping("/{id}/accept")
+    @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+    public ResponseEntity<TechnicianAssignment> acceptTask(@PathVariable("id") String assignmentId) {
+        return ResponseEntity.ok(technicianAssignmentService.acceptTask(assignmentId));
+    }
+
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+    public ResponseEntity<TechnicianAssignment> rejectTask(@PathVariable("id") String assignmentId,
+                                                           @RequestBody RejectAssignmentRequest request) {
+        return ResponseEntity.ok(technicianAssignmentService.rejectTask(assignmentId, request));
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
+    public ResponseEntity<TechnicianAssignment> updateStatus(@PathVariable("id") String assignmentId,
+                                                             @RequestBody UpdateAssignmentStatusRequest request) {
+        return ResponseEntity.ok(technicianAssignmentService.updateStatus(assignmentId, request));
+    }
+}
