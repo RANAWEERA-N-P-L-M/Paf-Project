@@ -4,6 +4,7 @@ import com.unicore.facility.dto.RejectAssignmentRequest;
 import com.unicore.facility.dto.UpdateAssignmentStatusRequest;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.service.TechnicianAssignmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,14 +30,14 @@ public class TechnicianAssignmentController {
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
     public ResponseEntity<TechnicianAssignment> rejectTask(@PathVariable("id") String assignmentId,
-                                                           @RequestBody RejectAssignmentRequest request) {
+                                                           @Valid @RequestBody RejectAssignmentRequest request) {
         return ResponseEntity.ok(technicianAssignmentService.rejectTask(assignmentId, request));
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('TECHNICIAN','ADMIN')")
     public ResponseEntity<TechnicianAssignment> updateStatus(@PathVariable("id") String assignmentId,
-                                                             @RequestBody UpdateAssignmentStatusRequest request) {
+                                                             @Valid @RequestBody UpdateAssignmentStatusRequest request) {
         return ResponseEntity.ok(technicianAssignmentService.updateStatus(assignmentId, request));
     }
 }

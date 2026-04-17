@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +40,9 @@ public class TicketService {
     private final MongoTemplate mongoTemplate;
 
     public Ticket createTicket(CreateTicketRequest request, String authenticatedEmail) {
-        validateRequest(request);
+        if (request == null) {
+            throw new ValidationException("Request body is required.");
+        }
 
         User createdBy = resolveCreatedBy(request, authenticatedEmail);
 
@@ -55,14 +58,15 @@ public class TicketService {
 
     public List<TechnicianAssignment> assignTechnicians(String ticketId, AssignTechniciansRequest request) {
         validateAssignRequest(request);
+        List<String> technicianIds = normalizeTechnicianIds(request.getTechnicianIds());
+        if (technicianIds.isEmpty()) {
+            throw new ValidationException("At least one valid technicianId is required.");
+        }
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found."));
 
-        if (ticket.getStatus() != Ticket.Status.OPEN) {
-            ticket.setStatus(Ticket.Status.OPEN);
-            ticketRepository.save(ticket);
-        }
+        ensureTicketOpen(ticket);
 
         List<TechnicianAssignment> existingAssignments = technicianAssignmentRepository.findByTicket(ticket);
         Set<String> existingTechnicianIds = new HashSet<>();
@@ -72,18 +76,9 @@ public class TicketService {
             }
         }
 
-        Set<String> uniqueInputIds = new HashSet<>();
         List<TechnicianAssignment> newAssignments = new ArrayList<>();
 
-        for (String rawId : request.getTechnicianIds()) {
-            if (isBlank(rawId)) {
-                continue;
-            }
-
-            String technicianId = rawId.trim();
-            if (!uniqueInputIds.add(technicianId)) {
-                continue;
-            }
+        for (String technicianId : technicianIds) {
             if (existingTechnicianIds.contains(technicianId)) {
                 continue;
             }
@@ -171,18 +166,6 @@ public class TicketService {
         throw new ValidationException("Unable to resolve ticket creator. Authenticate or provide userId.");
     }
 
-    private void validateRequest(CreateTicketRequest request) {
-        if (request == null) {
-            throw new ValidationException("Request body is required.");
-        }
-        if (isBlank(request.getTitle())) {
-            throw new ValidationException("Title is required.");
-        }
-        if (isBlank(request.getDescription())) {
-            throw new ValidationException("Description is required.");
-        }
-    }
-
     private void validateAssignRequest(AssignTechniciansRequest request) {
         if (request == null || request.getTechnicianIds() == null || request.getTechnicianIds().isEmpty()) {
             throw new ValidationException("technicianIds list is required.");
@@ -228,6 +211,21 @@ public class TicketService {
         }
 
         return grouped;
+    }
+
+    private void ensureTicketOpen(Ticket ticket) {
+        if (ticket.getStatus() != Ticket.Status.OPEN) {
+            ticket.setStatus(Ticket.Status.OPEN);
+            ticketRepository.save(ticket);
+        }
+    }
+
+    private List<String> normalizeTechnicianIds(List<String> technicianIds) {
+        return technicianIds.stream()
+                .filter(id -> id != null && !id.trim().isEmpty())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private boolean isBlank(String value) {

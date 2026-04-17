@@ -6,6 +6,7 @@ import com.unicore.facility.dto.TicketDashboardResponse;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
 import com.unicore.facility.service.TicketService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,7 +32,7 @@ public class TicketController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','USER','TECHNICIAN')")
-    public ResponseEntity<Ticket> createTicket(@RequestBody CreateTicketRequest request,
+    public ResponseEntity<Ticket> createTicket(@Valid @RequestBody CreateTicketRequest request,
                                                Authentication authentication) {
         String authenticatedEmail = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(ticketService.createTicket(request, authenticatedEmail));
@@ -49,7 +50,7 @@ public class TicketController {
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<TechnicianAssignment>> assignTicket(@PathVariable("id") String ticketId,
-                                                                   @RequestBody AssignTechniciansRequest request) {
+                                                                   @Valid @RequestBody AssignTechniciansRequest request) {
         return ResponseEntity.ok(ticketService.assignTechnicians(ticketId, request));
     }
 }

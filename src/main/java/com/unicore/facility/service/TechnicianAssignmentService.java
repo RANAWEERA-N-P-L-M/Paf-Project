@@ -48,34 +48,15 @@ public class TechnicianAssignmentService {
     public TechnicianAssignment updateStatus(String assignmentId, UpdateAssignmentStatusRequest request) {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
 
-        if (request == null || isBlank(request.getStatus())) {
+        if (request == null) {
             throw new ValidationException("status is required.");
         }
 
         Ticket.Status targetStatus = parseStatus(request.getStatus());
-        Ticket.Status currentStatus = assignment.getStatus();
-
-        if (targetStatus == Ticket.Status.IN_PROGRESS) {
-            throw new ValidationException("Use /accept endpoint to move status to IN_PROGRESS.");
-        }
-        if (targetStatus == Ticket.Status.REJECTED) {
-            throw new ValidationException("Use /reject endpoint to move status to REJECTED.");
-        }
-
-        if (targetStatus == Ticket.Status.RESOLVED && currentStatus != Ticket.Status.IN_PROGRESS) {
-            throw new InvalidStatusTransitionException("Cannot move to RESOLVED unless IN_PROGRESS.");
-        }
-        if (targetStatus == Ticket.Status.CLOSED && currentStatus != Ticket.Status.RESOLVED) {
-            throw new InvalidStatusTransitionException("Cannot CLOSE unless RESOLVED.");
-        }
-        if (targetStatus != Ticket.Status.RESOLVED && targetStatus != Ticket.Status.CLOSED) {
-            throw new ValidationException("Invalid status update target.");
-        }
+        validateStatusUpdateTransition(assignment.getStatus(), targetStatus);
 
         assignment.setStatus(targetStatus);
-        if (targetStatus != Ticket.Status.REJECTED) {
-            assignment.setRejectionReason(null);
-        }
+        assignment.setRejectionReason(null);
         return technicianAssignmentRepository.save(assignment);
     }
 
@@ -89,6 +70,24 @@ public class TechnicianAssignmentService {
             return Ticket.Status.valueOf(status.trim().toUpperCase());
         } catch (Exception ex) {
             throw new ValidationException("Invalid status value.");
+        }
+    }
+
+    private void validateStatusUpdateTransition(Ticket.Status currentStatus, Ticket.Status targetStatus) {
+        if (targetStatus == Ticket.Status.IN_PROGRESS) {
+            throw new ValidationException("Use /accept endpoint to move status to IN_PROGRESS.");
+        }
+        if (targetStatus == Ticket.Status.REJECTED) {
+            throw new ValidationException("Use /reject endpoint to move status to REJECTED.");
+        }
+        if (targetStatus == Ticket.Status.RESOLVED && currentStatus != Ticket.Status.IN_PROGRESS) {
+            throw new InvalidStatusTransitionException("Cannot move to RESOLVED unless IN_PROGRESS.");
+        }
+        if (targetStatus == Ticket.Status.CLOSED && currentStatus != Ticket.Status.RESOLVED) {
+            throw new InvalidStatusTransitionException("Cannot CLOSE unless RESOLVED.");
+        }
+        if (targetStatus != Ticket.Status.RESOLVED && targetStatus != Ticket.Status.CLOSED) {
+            throw new ValidationException("Invalid status update target.");
         }
     }
 
