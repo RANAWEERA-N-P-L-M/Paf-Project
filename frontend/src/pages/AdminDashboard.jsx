@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import adminService from '../services/adminService'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
+import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
 
 function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
@@ -631,7 +632,7 @@ function AdminDashboard() {
       return renderPlaceholder('Bookings', 'View and manage all booking records on this page.')
     }
     if (activeSection === 'tickets') {
-      return renderPlaceholder('Tickets', 'Track support and maintenance tickets here.')
+      return <AdminTicketDashboard technicians={users} />
     }
     return renderMainDashboard()
   }

@@ -238,6 +238,7 @@ function Dashboard() {
                         title="My Tasks"
                         description="View and manage your assigned maintenance tasks."
                         color="yellow"
+                        onClick={() => navigate('/technician/tasks')}
                       />
                       <FeatureCard
                         icon="📋"
@@ -265,6 +266,7 @@ function Dashboard() {
                         title="Submit a Request"
                         description="Raise a new service or maintenance request."
                         color="blue"
+                        onClick={() => navigate('/tickets/create')}
                       />
                       <FeatureCard
                         icon="📂"
