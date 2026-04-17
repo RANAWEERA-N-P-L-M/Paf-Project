@@ -20,6 +20,12 @@
 		<lombok.version>1.18.44</lombok.version>
 	</properties>
 	<dependencies>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Web -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
