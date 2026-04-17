@@ -9,4 +9,6 @@ import java.util.List;
 public interface TechnicianAssignmentRepository extends MongoRepository<TechnicianAssignment, String> {
 
     List<TechnicianAssignment> findByTicket(Ticket ticket);
+
+    List<TechnicianAssignment> findByTicketIn(List<Ticket> tickets);
 }
