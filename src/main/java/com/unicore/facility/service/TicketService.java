@@ -7,6 +7,8 @@ import com.unicore.facility.dto.CreateTicketRequest;
 import com.unicore.facility.dto.TicketDashboardResponse;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
+import com.unicore.facility.exception.ResourceNotFoundException;
+import com.unicore.facility.exception.ValidationException;
 import com.unicore.facility.repository.TechnicianAssignmentRepository;
 import com.unicore.facility.repository.TicketRepository;
 import com.unicore.repository.UserRepository;
@@ -55,7 +57,7 @@ public class TicketService {
         validateAssignRequest(request);
 
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found."));
 
         if (ticket.getStatus() != Ticket.Status.OPEN) {
             ticket.setStatus(Ticket.Status.OPEN);
@@ -87,10 +89,10 @@ public class TicketService {
             }
 
             User technician = userRepository.findById(technicianId)
-                    .orElseThrow(() -> new RuntimeException("Technician not found: " + technicianId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Technician not found: " + technicianId));
 
             if (technician.getRole() != User.Role.TECHNICIAN) {
-                throw new RuntimeException("User is not a technician: " + technicianId);
+                throw new ValidationException("User is not a technician: " + technicianId);
             }
 
             TechnicianAssignment assignment = new TechnicianAssignment();
@@ -110,7 +112,7 @@ public class TicketService {
 
     public List<TicketDashboardResponse> getTicketsForAdmin(String status, Instant fromDate, Instant toDate) {
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
-            throw new RuntimeException("fromDate must be before or equal to toDate.");
+            throw new ValidationException("fromDate must be before or equal to toDate.");
         }
 
         Query query = new Query().with(Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -158,32 +160,32 @@ public class TicketService {
     private User resolveCreatedBy(CreateTicketRequest request, String authenticatedEmail) {
         if (!isBlank(authenticatedEmail) && !"anonymousUser".equalsIgnoreCase(authenticatedEmail)) {
             return userRepository.findByEmail(authenticatedEmail)
-                    .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
         }
 
         if (!isBlank(request.getUserId())) {
             return userRepository.findById(request.getUserId().trim())
-                    .orElseThrow(() -> new RuntimeException("User not found for given userId."));
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found for given userId."));
         }
 
-        throw new RuntimeException("Unable to resolve ticket creator. Authenticate or provide userId.");
+        throw new ValidationException("Unable to resolve ticket creator. Authenticate or provide userId.");
     }
 
     private void validateRequest(CreateTicketRequest request) {
         if (request == null) {
-            throw new RuntimeException("Request body is required.");
+            throw new ValidationException("Request body is required.");
         }
         if (isBlank(request.getTitle())) {
-            throw new RuntimeException("Title is required.");
+            throw new ValidationException("Title is required.");
         }
         if (isBlank(request.getDescription())) {
-            throw new RuntimeException("Description is required.");
+            throw new ValidationException("Description is required.");
         }
     }
 
     private void validateAssignRequest(AssignTechniciansRequest request) {
         if (request == null || request.getTechnicianIds() == null || request.getTechnicianIds().isEmpty()) {
-            throw new RuntimeException("technicianIds list is required.");
+            throw new ValidationException("technicianIds list is required.");
         }
     }
 
@@ -191,7 +193,7 @@ public class TicketService {
         try {
             return Ticket.Status.valueOf(status.trim().toUpperCase());
         } catch (Exception ex) {
-            throw new RuntimeException("Invalid status value.");
+            throw new ValidationException("Invalid status value.");
         }
     }
 

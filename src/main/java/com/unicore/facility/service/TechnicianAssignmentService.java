@@ -4,6 +4,9 @@ import com.unicore.facility.dto.RejectAssignmentRequest;
 import com.unicore.facility.dto.UpdateAssignmentStatusRequest;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
+import com.unicore.facility.exception.InvalidStatusTransitionException;
+import com.unicore.facility.exception.ResourceNotFoundException;
+import com.unicore.facility.exception.ValidationException;
 import com.unicore.facility.repository.TechnicianAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +21,7 @@ public class TechnicianAssignmentService {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
 
         if (assignment.getStatus() != Ticket.Status.OPEN) {
-            throw new RuntimeException("Task can only be accepted from OPEN status.");
+            throw new InvalidStatusTransitionException("Task can only be accepted from OPEN status.");
         }
 
         assignment.setStatus(Ticket.Status.IN_PROGRESS);
@@ -30,11 +33,11 @@ public class TechnicianAssignmentService {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
 
         if (request == null || isBlank(request.getRejectionReason())) {
-            throw new RuntimeException("rejectionReason is required.");
+            throw new ValidationException("rejectionReason is required.");
         }
 
         if (assignment.getStatus() != Ticket.Status.OPEN && assignment.getStatus() != Ticket.Status.IN_PROGRESS) {
-            throw new RuntimeException("Task can only be rejected from OPEN or IN_PROGRESS status.");
+            throw new InvalidStatusTransitionException("Task can only be rejected from OPEN or IN_PROGRESS status.");
         }
 
         assignment.setStatus(Ticket.Status.REJECTED);
@@ -46,25 +49,27 @@ public class TechnicianAssignmentService {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
 
         if (request == null || isBlank(request.getStatus())) {
-            throw new RuntimeException("status is required.");
+            throw new ValidationException("status is required.");
         }
 
         Ticket.Status targetStatus = parseStatus(request.getStatus());
         Ticket.Status currentStatus = assignment.getStatus();
 
         if (targetStatus == Ticket.Status.IN_PROGRESS) {
-            throw new RuntimeException("Use /accept endpoint to move status to IN_PROGRESS.");
+            throw new ValidationException("Use /accept endpoint to move status to IN_PROGRESS.");
         }
         if (targetStatus == Ticket.Status.REJECTED) {
-            throw new RuntimeException("Use /reject endpoint to move status to REJECTED.");
+            throw new ValidationException("Use /reject endpoint to move status to REJECTED.");
         }
 
-        boolean isValidTransition =
-                (currentStatus == Ticket.Status.IN_PROGRESS && targetStatus == Ticket.Status.RESOLVED)
-                        || (currentStatus == Ticket.Status.RESOLVED && targetStatus == Ticket.Status.CLOSED);
-
-        if (!isValidTransition) {
-            throw new RuntimeException("Invalid status transition. Allowed transitions: IN_PROGRESS -> RESOLVED -> CLOSED.");
+        if (targetStatus == Ticket.Status.RESOLVED && currentStatus != Ticket.Status.IN_PROGRESS) {
+            throw new InvalidStatusTransitionException("Cannot move to RESOLVED unless IN_PROGRESS.");
+        }
+        if (targetStatus == Ticket.Status.CLOSED && currentStatus != Ticket.Status.RESOLVED) {
+            throw new InvalidStatusTransitionException("Cannot CLOSE unless RESOLVED.");
+        }
+        if (targetStatus != Ticket.Status.RESOLVED && targetStatus != Ticket.Status.CLOSED) {
+            throw new ValidationException("Invalid status update target.");
         }
 
         assignment.setStatus(targetStatus);
@@ -76,14 +81,14 @@ public class TechnicianAssignmentService {
 
     private TechnicianAssignment getAssignmentOrThrow(String assignmentId) {
         return technicianAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new RuntimeException("Assignment not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found."));
     }
 
     private Ticket.Status parseStatus(String status) {
         try {
             return Ticket.Status.valueOf(status.trim().toUpperCase());
         } catch (Exception ex) {
-            throw new RuntimeException("Invalid status value.");
+            throw new ValidationException("Invalid status value.");
         }
     }
 
