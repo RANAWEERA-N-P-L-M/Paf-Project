@@ -23,6 +23,8 @@ function AdminDashboard() {
     description: '',
     status: 'ACTIVE',
   })
+  const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
+  const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [bookings, setBookings] = useState([])
@@ -370,6 +372,11 @@ function AdminDashboard() {
     },
   ]
 
+  const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
+  const filteredCatalogues = normalizedCatalogueSearch
+    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
+    : catalogues
+
   const renderUsersSection = () => (
     <>
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -607,13 +614,34 @@ function AdminDashboard() {
         </button>
       </div>
 
+      <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <input
+          type="text"
+          value={catalogueSearchInput}
+          onChange={(e) => setCatalogueSearchInput(e.target.value)}
+          placeholder="Search by class name"
+          className="w-full sm:max-w-sm border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <button
+          type="button"
+          onClick={() => setCatalogueSearchTerm(catalogueSearchInput)}
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+        >
+          Search
+        </button>
+      </div>
+
       {catalogues.length === 0 ? (
         <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
         </div>
+      ) : filteredCatalogues.length === 0 ? (
+        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
+          <p className="text-textSecondary text-sm">No catalogues found for that class name.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {catalogues.map((item, idx) => (
+          {filteredCatalogues.map((item, idx) => (
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
