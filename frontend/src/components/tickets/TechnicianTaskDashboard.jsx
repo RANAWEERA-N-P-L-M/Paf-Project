@@ -9,6 +9,7 @@ const STATUS_COLORS = {
   RESOLVED: 'bg-emerald-100 text-emerald-700',
   CLOSED: 'bg-slate-200 text-slate-700',
   REJECTED: 'bg-red-100 text-red-700',
+  EXPIRED: 'bg-red-600 text-white',
 }
 
 const PRIORITY_COLORS = {
@@ -138,11 +139,12 @@ function TechnicianTaskDashboard() {
             const timeInfo = timeRemaining[task.ticketId]
             const isExpired = timeInfo?.expired || false
             const isCritical = timeInfo?.critical || false
+            const isEffectivelyExpired = isExpired && ['OPEN', 'IN_PROGRESS'].includes(task.status)
             
             return (
               <div
                 key={task.assignmentId || task.ticketId}
-                className={`border rounded-xl p-4 ${isExpired ? 'border-red-300 bg-red-50' : 'border-borderColor'}`}
+                className={`border rounded-xl p-4 ${isEffectivelyExpired ? 'border-red-300 bg-red-50' : 'border-borderColor'}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                   <div className="flex-1">
@@ -158,24 +160,20 @@ function TechnicianTaskDashboard() {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-600'}`}
+                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${isEffectivelyExpired ? STATUS_COLORS['EXPIRED'] : (STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-600')}`}
                     >
-                      {task.status}
+                      {isEffectivelyExpired ? 'EXPIRED' : task.status}
                     </span>
                     <span
                       className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${PRIORITY_COLORS[task.priority] || 'bg-gray-100 text-gray-600'}`}
                     >
                       {task.priority}
                     </span>
-                    {isExpired ? (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
-                        ⏱ EXPIRED
-                      </span>
-                    ) : (
+                    {['OPEN', 'IN_PROGRESS'].includes(task.status) && timeInfo && (
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${isCritical ? 'bg-orange-600 text-white animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}
+                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${isEffectivelyExpired ? 'bg-red-600 text-white' : isCritical ? 'bg-orange-600 text-white animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}
                       >
-                        {timeInfo?.text || '-'}
+                        {isEffectivelyExpired ? '⏱ EXPIRED' : timeInfo.text}
                       </span>
                     )}
                   </div>

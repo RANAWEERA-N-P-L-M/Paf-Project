@@ -3,8 +3,8 @@ import ticketService from '../../services/ticketService'
 import AssignTechnicianModal from './AssignTechnicianModal'
 import { useCountdownTimer } from '../../hooks/useCountdownTimer'
 
-const STATUS_OPTIONS = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED']
-const PRIORITY_OPTIONS = ['', 'LOW', 'MEDIUM', 'HIGH']
+const STATUS_OPTIONS = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED', 'EXPIRED']
+const PRIORITY_OPTIONS = ['', 'LOW', 'MEDIUM', 'HIGH', 'IMMEDIATE']
 
 const formatDateTime = (value) => {
   if (!value) return '-'
@@ -28,6 +28,7 @@ const statusBadgeClass = (status) => {
     RESOLVED: 'bg-emerald-100 text-emerald-700',
     CLOSED: 'bg-slate-200 text-slate-700',
     REJECTED: 'bg-red-100 text-red-700',
+    EXPIRED: 'bg-red-600 text-white',
   }
   return map[status] || 'bg-gray-100 text-gray-600'
 }
@@ -37,6 +38,7 @@ const priorityBadgeClass = (priority) => {
     HIGH: 'bg-red-100 text-red-700',
     MEDIUM: 'bg-yellow-100 text-yellow-700',
     LOW: 'bg-green-100 text-green-700',
+    IMMEDIATE: 'bg-red-200 text-red-800',
   }
   return map[priority] || 'bg-gray-100 text-gray-600'
 }
@@ -232,24 +234,33 @@ function AdminTicketDashboard({ technicians = [] }) {
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${statusBadgeClass(
-                        ticket.status
+                        timeRemaining[ticket.id]?.expired && ['OPEN', 'IN_PROGRESS'].includes(ticket.status) ? 'EXPIRED' : ticket.status
                       )}`}
                     >
-                      {ticket.status}
+                      {timeRemaining[ticket.id]?.expired && ['OPEN', 'IN_PROGRESS'].includes(ticket.status) ? 'EXPIRED' : ticket.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {ticket.priority ? (
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${priorityBadgeClass(
-                          ticket.priority
-                        )}`}
-                      >
-                        {ticket.priority}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-textSecondary">-</span>
-                    )}
+                    <select
+                      value={ticket.priority || 'MEDIUM'}
+                      onChange={async (e) => {
+                        const newPriority = e.target.value;
+                        if (newPriority === ticket.priority) return;
+                        try {
+                          await ticketService.updateTicketPriority(ticket.id, newPriority);
+                          fetchTickets({ silent: true });
+                        } catch (err) {
+                          alert('Failed to update priority. ' + (err.response?.data?.error || ''));
+                        }
+                      }}
+                      className={`px-2 py-1 pr-6 rounded-full text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary/20 transition-opacity hover:opacity-90 ${priorityBadgeClass(ticket.priority)}`}
+                      title="Click to change ticket priority"
+                    >
+                      <option className="bg-white text-slate-800" value="LOW">LOW</option>
+                      <option className="bg-white text-slate-800" value="MEDIUM">MEDIUM</option>
+                      <option className="bg-white text-slate-800" value="HIGH">HIGH</option>
+                      <option className="bg-white text-slate-800" value="IMMEDIATE">IMMEDIATE</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     {ticket.slaStatus ? (
