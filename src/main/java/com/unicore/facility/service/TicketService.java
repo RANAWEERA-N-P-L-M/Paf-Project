@@ -1,5 +1,6 @@
 package com.unicore.facility.service;
 
+import com.unicore.entity.Notification;
 import com.unicore.entity.User;
 import com.unicore.facility.dto.AssignedTechnicianDto;
 import com.unicore.facility.dto.AssignTechniciansRequest;
@@ -12,6 +13,7 @@ import com.unicore.facility.exception.ValidationException;
 import com.unicore.facility.repository.TechnicianAssignmentRepository;
 import com.unicore.facility.repository.TicketRepository;
 import com.unicore.repository.UserRepository;
+import com.unicore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -38,6 +40,7 @@ public class TicketService {
     private final TechnicianAssignmentRepository technicianAssignmentRepository;
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
 
     public Ticket createTicket(CreateTicketRequest request, String authenticatedEmail) {
         if (request == null) {
@@ -53,7 +56,13 @@ public class TicketService {
         ticket.setCreatedAt(Instant.now());
         ticket.setCreatedBy(createdBy);
 
-        return ticketRepository.save(ticket);
+        Ticket saved = ticketRepository.save(ticket);
+        notificationService.notifyAllAdmins(
+                "New ticket submitted: \"" + saved.getTitle() + "\" by " + createdBy.getName(),
+                Notification.Type.TICKET,
+                saved.getId()
+        );
+        return saved;
     }
 
     public List<TechnicianAssignment> assignTechnicians(String ticketId, AssignTechniciansRequest request) {
@@ -102,7 +111,18 @@ public class TicketService {
             return List.of();
         }
 
-        return technicianAssignmentRepository.saveAll(newAssignments);
+        List<TechnicianAssignment> saved = technicianAssignmentRepository.saveAll(newAssignments);
+        for (TechnicianAssignment assignment : saved) {
+            if (assignment.getTechnician() != null) {
+                notificationService.createNotification(
+                        assignment.getTechnician().getId(),
+                        "You have been assigned to ticket: \"" + ticket.getTitle() + "\"",
+                        Notification.Type.ASSIGNMENT,
+                        ticket.getId()
+                );
+            }
+        }
+        return saved;
     }
 
     public List<TicketDashboardResponse> getTicketsForAdmin(String status, Instant fromDate, Instant toDate) {
