@@ -89,6 +89,11 @@ function Dashboard() {
   const [bookingMessage, setBookingMessage] = useState('')
   const [bookingError, setBookingError] = useState('')
 
+  // catalogue filters
+  const [typeFilter, setTypeFilter] = useState('')
+  const [capacityFilter, setCapacityFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
+
   const checked = useRef(false)
 
   const handleLogout = () => {
@@ -205,9 +210,17 @@ function Dashboard() {
   const recentAssignments = [...myAssignments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6)
 
   const normalizedSearch = catalogueSearchTerm.trim().toLowerCase()
-  const filteredCatalogues = normalizedSearch
-    ? catalogues.filter(item => (item.name || '').toLowerCase().includes(normalizedSearch))
-    : catalogues
+  const filteredCatalogues = catalogues.filter(item => {
+    if (normalizedSearch && !(item.name || '').toLowerCase().includes(normalizedSearch)) return false
+    if (typeFilter && item.type !== typeFilter) return false
+    if (locationFilter && item.location !== locationFilter) return false
+    if (capacityFilter && String(item.capacity) !== capacityFilter) return false
+    return true
+  })
+
+  const catalogueTypeOptions = [...new Set(catalogues.map(c => c.type).filter(Boolean))]
+  const catalogueLocationOptions = [...new Set(catalogues.map(c => c.location).filter(Boolean))]
+  const catalogueCapacityOptions = [...new Set(catalogues.map(c => c.capacity).filter(v => v != null))].sort((a, b) => Number(a) - Number(b))
 
   // ── sidebar nav ────────────────────────────────────────────────────────────
   const navItems = isTech
