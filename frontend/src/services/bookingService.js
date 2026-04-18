@@ -9,6 +9,8 @@ const bookingService = {
 
   getMyBookings: () => axios.get(`${API_URL}/my`, authService.getAuthHeader()),
 
+  getMostBookedResources: () => axios.get(`${API_URL}/report/most-booked-resources`, authService.getAuthHeader()),
+
   getAllBookings: () => axios.get(API_URL, authService.getAuthHeader()),
 
   approveBooking: (id, message) =>

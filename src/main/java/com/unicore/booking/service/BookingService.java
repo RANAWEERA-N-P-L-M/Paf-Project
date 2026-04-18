@@ -2,6 +2,7 @@ package com.unicore.booking.service;
 
 import com.unicore.booking.dto.BookingResponse;
 import com.unicore.booking.dto.CreateBookingRequest;
+import com.unicore.booking.dto.MostBookedResourceResponse;
 import com.unicore.booking.entity.Booking;
 import com.unicore.booking.repository.BookingRepository;
 import com.unicore.entity.Notification;
@@ -17,8 +18,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -118,6 +122,42 @@ public class BookingService {
                 .map(this::toResponse)
                 .toList();
     }
+
+    public List<MostBookedResourceResponse> getMostBookedResources() {
+        Map<String, MostBookedResourceResponse> countsByFacility = new LinkedHashMap<>();
+
+        bookingRepository.findAll().stream()
+                .filter(booking -> booking.getStatus() == Booking.Status.APPROVED)
+                .forEach(booking -> {
+                    String facilityKey = booking.getFacilityId() == null || booking.getFacilityId().isBlank()
+                            ? booking.getFacilityName()
+                            : booking.getFacilityId();
+
+                    if (facilityKey == null || facilityKey.isBlank()) {
+                        facilityKey = "unknown-resource";
+                    }
+
+                    MostBookedResourceResponse current = countsByFacility.getOrDefault(
+                            facilityKey,
+                            new MostBookedResourceResponse(
+                                    booking.getFacilityId(),
+                                    booking.getFacilityName(),
+                                    0L
+                            )
+                    );
+
+                    current.setBookingCount(current.getBookingCount() + 1);
+                    countsByFacility.put(facilityKey, current);
+                });
+
+        return countsByFacility.values().stream()
+                .sorted(Comparator
+                        .comparingLong(MostBookedResourceResponse::getBookingCount)
+                        .reversed()
+                        .thenComparing(response -> trimToEmpty(response.getFacilityName()).toLowerCase()))
+                .limit(5)
+                .toList();
+        }
 
     public BookingResponse approveBooking(String bookingId, String adminResponse) {
         Booking booking = findBookingById(bookingId);
