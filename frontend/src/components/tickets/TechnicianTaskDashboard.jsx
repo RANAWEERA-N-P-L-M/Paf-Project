@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ticketService from '../../services/ticketService'
 import RejectTaskModal from './RejectTaskModal'
+import { useCountdownTimer } from '../../hooks/useCountdownTimer'
 
 const STATUS_COLORS = {
   OPEN: 'bg-blue-100 text-blue-700',
@@ -33,41 +34,13 @@ function TechnicianTaskDashboard() {
   const [error, setError] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState({})
-  const timerRef = useRef(null)
 
-  const calculateTimeRemaining = useCallback((deadline) => {
-    if (!deadline) return null
-    const deadlineTime = new Date(deadline).getTime()
-    const now = new Date().getTime()
-    const remaining = deadlineTime - now
-    
-    if (remaining <= 0) {
-      return { expired: true, text: 'EXPIRED' }
-    }
-    
-    const days = Math.floor(remaining / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-    
-    if (days > 0) {
-      return { expired: false, text: `${days}d ${hours}h` }
-    } else if (hours > 0) {
-      return { expired: false, text: `${hours}h ${minutes}m`, critical: hours < 3 }
-    } else {
-      return { expired: false, text: `${minutes}m`, critical: true }
-    }
-  }, [])
+  const { timeRemaining } = useCountdownTimer(
+    tasks,
+    (task) => task.deadline
+  )
 
-  const updateCountdown = useCallback(() => {
-    setTimeRemaining((prev) => {
-      const updated = {}
-      tasks.forEach((task) => {
-        updated[task.ticketId] = calculateTimeRemaining(task.deadline)
-      })
-      return updated
-    })
-  }, [tasks, calculateTimeRemaining])
+
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -86,7 +59,6 @@ function TechnicianTaskDashboard() {
         createdAt: task.createdAt,
       }))
       setTasks(taskList)
-      setTimeRemaining({})
     } catch (err) {
       setError(
         err.response?.data?.error || 'Unable to load assigned tasks right now.'
@@ -101,14 +73,6 @@ function TechnicianTaskDashboard() {
     initialized.current = true
     loadTasks()
   }, [loadTasks])
-
-  useEffect(() => {
-    updateCountdown()
-    timerRef.current = setInterval(updateCountdown, 60000) // Update every minute
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [updateCountdown])
 
   const noAssignmentIdCount = useMemo(
     () => tasks.filter((task) => !task.assignmentId).length,

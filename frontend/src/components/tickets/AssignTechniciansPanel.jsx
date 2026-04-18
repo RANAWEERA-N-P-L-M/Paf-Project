@@ -5,6 +5,7 @@ import ticketService from '../../services/ticketService'
 function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
   const [localTechnicians, setLocalTechnicians] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
+  const [priority, setPriority] = useState('')
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [error, setError] = useState('')
@@ -45,15 +46,27 @@ function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
 
   const handleAssign = async () => {
     setError('')
-    if (!ticketId || selectedIds.length === 0) return
+    
+    // Allow saving priority only without requiring selected technicians if priority is selected
+    if (!ticketId) return
+    if (selectedIds.length === 0 && !priority) {
+      setError('Please select a technician or priority.')
+      return
+    }
 
     try {
       setAssigning(true)
-      await ticketService.assignTicket(ticketId, selectedIds)
+      if (selectedIds.length > 0) {
+        await ticketService.assignTicket(ticketId, selectedIds, priority)
+      } else if (priority) {
+        // Just update priority if no technician is selected
+        await ticketService.updateTicketPriority(ticketId, priority)
+      }
       setSelectedIds([])
+      setPriority('')
       if (onAssigned) onAssigned()
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to assign technicians.')
+      setError(err.response?.data?.error || 'Failed to update ticket.')
     } finally {
       setAssigning(false)
     }
@@ -84,18 +97,31 @@ function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
       </select>
 
       {selectedIds.length > 0 && (
-        <p className="text-[11px] text-textSecondary mt-2">
+        <p className="text-[11px] text-textSecondary mt-2 mb-2">
           Selected: {availableTechnicians.find(t => t.id === selectedIds[0])?.name || 'Unknown'}
         </p>
       )}
 
+      <select
+        value={priority}
+        onChange={(e) => setPriority(e.target.value)}
+        className="w-full border border-borderColor rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 mt-2"
+        disabled={loadingUsers || assigning}
+      >
+        <option value="">-- No Priority Change --</option>
+        <option value="LOW">LOW</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="HIGH">HIGH</option>
+        <option value="IMMEDIATE">IMMEDIATE</option>
+      </select>
+
       <button
         type="button"
         onClick={handleAssign}
-        disabled={assigning || loadingUsers || selectedIds.length === 0}
-        className="mt-2 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+        disabled={assigning || loadingUsers || (selectedIds.length === 0 && !priority)}
+        className="mt-3 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:opacity-90 disabled:opacity-60"
       >
-        {assigning ? 'Assigning...' : 'Assign'}
+        {assigning ? 'Saving...' : (selectedIds.length > 0 ? 'Assign & Save' : 'Update Priority')}
       </button>
     </div>
   )

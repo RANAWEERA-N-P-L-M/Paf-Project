@@ -45,18 +45,22 @@ public class TechnicianAssignmentService {
 
         for (TechnicianAssignment assignment : assignments) {
             Ticket ticket = assignment.getTicket();
+            // Skip assignments where ticket no longer exists (deleted)
+            if (ticket == null) {
+                continue;
+            }
             response.add(new TechnicianTaskResponse(
                     assignment.getId(),
-                    ticket != null ? ticket.getId() : null,
-                    ticket != null ? ticket.getTitle() : null,
-                    ticket != null ? ticket.getDescription() : null,
+                    ticket.getId(),
+                    ticket.getTitle(),
+                    ticket.getDescription(),
                     assignment.getAssignmentStatus(),
-                    ticket != null ? ticket.getPriority() : null,
-                    ticket != null ? ticket.getDeadline() : null,
-                    ticket != null ? ticket.getSlaStatus() : null,
-                    ticket != null ? ticket.getEscalated() : null,
+                    ticket.getPriority(),
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
                     assignment.getRejectionReason(),
-                    ticket != null ? ticket.getCreatedAt() : null));
+                    ticket.getCreatedAt()));
         }
 
         response.sort(Comparator.comparing(TechnicianTaskResponse::getCreatedAt,

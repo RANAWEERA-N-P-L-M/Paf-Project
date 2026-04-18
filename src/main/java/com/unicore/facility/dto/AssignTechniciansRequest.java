@@ -10,4 +10,6 @@ public class AssignTechniciansRequest {
 
     @NotEmpty(message = "technicianIds list is required.")
     private List<String> technicianIds;
+
+    private String priority;
 }

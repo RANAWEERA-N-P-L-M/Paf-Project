@@ -4,6 +4,7 @@ import com.unicore.entity.User;
 import com.unicore.facility.dto.AssignedTechnicianDto;
 import com.unicore.facility.dto.AssignTechniciansRequest;
 import com.unicore.facility.dto.CreateTicketRequest;
+import com.unicore.facility.dto.UpdateTicketPriorityRequest;
 import com.unicore.facility.dto.TicketDashboardResponse;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
@@ -76,6 +77,17 @@ public class TicketService {
 
         ensureTicketOpen(ticket);
 
+        if (request.getPriority() != null && !request.getPriority().trim().isEmpty()) {
+            try {
+                Ticket.Priority newPriority = Ticket.Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ticket.setPriority(newPriority);
+                ticket.setDeadline(calculateDeadline(ticket.getCreatedAt(), newPriority));
+                ticketRepository.save(ticket);
+            } catch (Exception ex) {
+                throw new ValidationException("Invalid priority value.");
+            }
+        }
+
         List<TechnicianAssignment> existingAssignments = technicianAssignmentRepository.findByTicket(ticket);
         Set<String> existingTechnicianIds = new HashSet<>();
         for (TechnicianAssignment assignment : existingAssignments) {
@@ -114,6 +126,23 @@ public class TicketService {
         }
 
         return technicianAssignmentRepository.saveAll(newAssignments);
+    }
+
+    public Ticket updateTicketPriority(String ticketId, UpdateTicketPriorityRequest request) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found."));
+
+        if (request.getPriority() != null && !request.getPriority().trim().isEmpty()) {
+            try {
+                Ticket.Priority newPriority = Ticket.Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ticket.setPriority(newPriority);
+                ticket.setDeadline(calculateDeadline(ticket.getCreatedAt(), newPriority));
+                return ticketRepository.save(ticket);
+            } catch (Exception ex) {
+                throw new ValidationException("Invalid priority value.");
+            }
+        }
+        return ticket;
     }
 
     public List<TicketDashboardResponse> getTicketsForAdmin(String status, Instant fromDate, Instant toDate) {
@@ -290,9 +319,14 @@ public class TicketService {
         long hoursToAdd = switch (priority) {
             case HIGH -> 24;
             case MEDIUM -> 48;
-            case LOW -> 78;
+            case LOW -> 72;
             case IMMEDIATE -> 6;
         };
         return createdAt.plusSeconds(hoursToAdd * 3600);
+    }
+
+    public void deleteAllTickets() {
+        technicianAssignmentRepository.deleteAll();
+        ticketRepository.deleteAll();
     }
 }

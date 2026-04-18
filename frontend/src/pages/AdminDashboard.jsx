@@ -4,6 +4,7 @@ import adminService from '../services/adminService'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
 import bookingService from '../services/bookingService'
+import ticketService from '../services/ticketService'
 import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
 
 function AdminDashboard() {
@@ -30,6 +31,7 @@ function AdminDashboard() {
   const [bookingActionId, setBookingActionId] = useState('')
   const [resetPasswordId, setResetPasswordId] = useState(null)
   const [newPassword, setNewPassword] = useState('')
+  const [tickets, setTickets] = useState([])
   const navigate = useNavigate()
   const initialized = useRef(false)
 
@@ -82,6 +84,20 @@ function AdminDashboard() {
     }
   }, [navigate])
 
+  const fetchTickets = useCallback(async () => {
+    try {
+      const res = await ticketService.getAllTickets()
+      setTickets(res.data || [])
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        authService.logout()
+        navigate('/login')
+      } else {
+        setError(err.response?.data?.error || 'Failed to load tickets.')
+      }
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
@@ -92,7 +108,8 @@ function AdminDashboard() {
     fetchUsers()
     fetchCatalogues()
     fetchBookings()
-  }, [navigate, fetchUsers, fetchCatalogues, fetchBookings])
+    fetchTickets()
+  }, [navigate, fetchUsers, fetchCatalogues, fetchBookings, fetchTickets])
 
   const handleApprove = async (id) => {
     try {
@@ -354,7 +371,7 @@ function AdminDashboard() {
     {
       key: 'tickets',
       title: 'Total Tickets',
-      count: 0,
+      count: tickets.length,
       accent: 'border-amber-200 bg-amber-50',
       textColor: 'text-amber-700',
       icon: '🎫',

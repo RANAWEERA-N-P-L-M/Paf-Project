@@ -2,6 +2,7 @@ package com.unicore.facility.controller;
 
 import com.unicore.facility.dto.AssignTechniciansRequest;
 import com.unicore.facility.dto.CreateTicketRequest;
+import com.unicore.facility.dto.UpdateTicketPriorityRequest;
 import com.unicore.facility.dto.TicketDashboardResponse;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
@@ -15,6 +16,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +36,7 @@ public class TicketController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','USER','TECHNICIAN')")
     public ResponseEntity<Ticket> createTicket(@Valid @RequestBody CreateTicketRequest request,
-                                               Authentication authentication) {
+            Authentication authentication) {
         String authenticatedEmail = authentication != null ? authentication.getName() : null;
         return ResponseEntity.ok(ticketService.createTicket(request, authenticatedEmail));
     }
@@ -57,7 +60,21 @@ public class TicketController {
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<TechnicianAssignment>> assignTicket(@PathVariable("id") String ticketId,
-                                                                   @Valid @RequestBody AssignTechniciansRequest request) {
+            @Valid @RequestBody AssignTechniciansRequest request) {
         return ResponseEntity.ok(ticketService.assignTechnicians(ticketId, request));
+    }
+
+    @PutMapping("/{id}/priority")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Ticket> updateTicketPriority(@PathVariable("id") String ticketId,
+            @Valid @RequestBody UpdateTicketPriorityRequest request) {
+        return ResponseEntity.ok(ticketService.updateTicketPriority(ticketId, request));
+    }
+
+    @DeleteMapping("/clear-all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> clearAllTickets() {
+        ticketService.deleteAllTickets();
+        return ResponseEntity.ok("All tickets have been deleted.");
     }
 }

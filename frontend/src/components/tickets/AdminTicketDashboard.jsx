@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ticketService from '../../services/ticketService'
 import AssignTechnicianModal from './AssignTechnicianModal'
+import { useCountdownTimer } from '../../hooks/useCountdownTimer'
 
 const STATUS_OPTIONS = ['', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED']
 const PRIORITY_OPTIONS = ['', 'LOW', 'MEDIUM', 'HIGH']
@@ -58,6 +59,13 @@ function AdminTicketDashboard({ technicians = [] }) {
   })
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState(null)
+  const [clearing, setClearing] = useState(false)
+
+  // Countdown timer for deadlines
+  const { timeRemaining } = useCountdownTimer(
+    tickets,
+    (ticket) => ticket.deadline
+  )
 
   const fetchTickets = useCallback(async (options = {}) => {
     if (!options.silent) setLoading(true)
@@ -79,7 +87,7 @@ function AdminTicketDashboard({ technicians = [] }) {
   useEffect(() => {
     const intervalId = setInterval(() => {
       fetchTickets({ silent: true })
-    }, 6000)
+    }, 10000) // Update every 10 seconds to sync with countdown timer
 
     return () => clearInterval(intervalId)
   }, [fetchTickets])
@@ -100,6 +108,23 @@ function AdminTicketDashboard({ technicians = [] }) {
   const openAssignModal = (ticket) => {
     setSelectedTicket(ticket)
     setModalOpen(true)
+  }
+
+  const handleClearAllTickets = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL tickets? This action cannot be undone.')) {
+      return
+    }
+    setClearing(true)
+    setError('')
+    try {
+      await ticketService.clearAllTickets()
+      await fetchTickets()
+      alert('All tickets have been deleted successfully.')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to clear tickets.')
+    } finally {
+      setClearing(false)
+    }
   }
 
   return (
@@ -153,6 +178,16 @@ function AdminTicketDashboard({ technicians = [] }) {
         </div>
       </div>
 
+      <div className="flex gap-2">
+        <button
+          onClick={handleClearAllTickets}
+          disabled={clearing || tickets.length === 0}
+          className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+        >
+          {clearing ? 'Clearing...' : '🗑️ Clear All Tickets'}
+        </button>
+      </div>
+
       {error && (
         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
           {error}
@@ -170,13 +205,14 @@ function AdminTicketDashboard({ technicians = [] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-borderColor">
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-40">Title</th>
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-24">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-20">Priority</th>
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-20">SLA</th>
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-32">Created</th>
-                <th className="px-4 py-3 text-left font-semibold text-textSecondary min-w-40">Technicians</th>
-                <th className="px-4 py-3 text-center font-semibold text-textSecondary min-w-20">Action</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Title</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Priority</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">SLA</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Created</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Deadline</th>
+                <th className="px-4 py-3 text-left font-semibold text-textSecondary whitespace-nowrap">Technicians</th>
+                <th className="px-4 py-3 text-center font-semibold text-textSecondary whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -187,8 +223,8 @@ function AdminTicketDashboard({ technicians = [] }) {
                     idx === preparedTickets.length - 1 ? 'border-none' : ''
                   }`}
                 >
-                  <td className="px-4 py-3 text-textPrimary font-medium">
-                    <div className="truncate hover:text-clip" title={ticket.title}>
+                  <td className="px-4 py-3 text-textPrimary font-medium max-w-[200px]">
+                    <div className="truncate" title={ticket.title}>
                       {ticket.title}
                     </div>
                   </td>
@@ -231,31 +267,27 @@ function AdminTicketDashboard({ technicians = [] }) {
                   <td className="px-4 py-3 text-textSecondary text-xs whitespace-nowrap">
                     {formatDateTime(ticket.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-textSecondary">
+                  <td className="px-4 py-3 text-xs font-semibold whitespace-nowrap">
+                    {timeRemaining[ticket.id] ? (
+                      <span className={timeRemaining[ticket.id].className}>
+                        {timeRemaining[ticket.id].text}
+                      </span>
+                    ) : ticket.deadline ? (
+                      <span className="text-gray-600">{formatDateTime(ticket.deadline)}</span>
+                    ) : (
+                      <span className="text-textSecondary">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-textSecondary min-w-[120px]">
                     {ticket.assignedTechnicians.length === 0 ? (
                       <span className="text-xs text-slate-400">Not assigned</span>
                     ) : (
                       <div className="space-y-0.5">
                         {ticket.assignedTechnicians.slice(0, 2).map((tech) => (
                           <div key={`${ticket.id}-${tech.technicianId}`} className="text-xs">
-                            <div className="flex items-center gap-1">
-                              <span className="truncate">
-                                {tech.name || tech.email || 'Unknown'}
-                              </span>
-                              <span
-                                className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
-                                  tech.assignmentStatus === 'REJECTED'
-                                    ? 'bg-red-50 text-red-700'
-                                    : tech.assignmentStatus === 'RESOLVED'
-                                    ? 'bg-green-50 text-green-700'
-                                    : tech.assignmentStatus === 'IN_PROGRESS'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'bg-blue-50 text-blue-700'
-                                }`}
-                              >
-                                {tech.assignmentStatus}
-                              </span>
-                            </div>
+                            <span className="block truncate max-w-[120px]" title={tech.name || tech.email}>
+                              {tech.name || tech.email || 'Unknown'}
+                            </span>
                             {tech.rejectionReason && (
                               <div className="text-[11px] text-red-600 mt-0.5">
                                 Rejected: {tech.rejectionReason}
