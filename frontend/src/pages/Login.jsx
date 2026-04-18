@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { BACKEND_ORIGIN } from '../config/api'
 import authService from '../services/authService'
 
@@ -9,14 +9,8 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [exiting, setExiting] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-
-  const handleGoToRegister = () => {
-    setExiting(true)
-    setTimeout(() => navigate('/register'), 320)
-  }
 
   const pendingMsg = searchParams.get('msg') === 'pending'
     ? 'Your account is awaiting admin approval.'
@@ -58,10 +52,12 @@ function Login() {
       }}
     >
       {/* Left side — shows background image */}
-      <div className="flex-1" />
+      <div className="w-3/5 relative">
+        <div className="absolute inset-0" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+      </div>
 
       {/* Right side — form panel */}
-      <div className={`flex-1 min-h-screen bg-white flex flex-col justify-center px-16 py-12 shadow-2xl ${exiting ? 'form-exit' : 'form-enter'}`}>
+      <div className="w-2/5 min-h-screen bg-white flex flex-col justify-center px-16 py-12 shadow-2xl">
 
         {/* Branding */}
         <div className="mb-8">
@@ -193,13 +189,9 @@ function Login() {
 
         <p className="text-center mt-7 text-sm text-textSecondary">
           Don&apos;t have an account?{' '}
-          <button
-            type="button"
-            onClick={handleGoToRegister}
-            className="text-accent font-semibold hover:underline"
-          >
+          <Link to="/register" className="text-accent font-semibold hover:underline">
             Create one
-          </button>
+          </Link>
         </p>
       </div>
     </div>

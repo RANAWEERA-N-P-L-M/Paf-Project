@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import authService from '../services/authService'
 
 function Register() {
@@ -13,12 +13,6 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [exiting, setExiting] = useState(false)
-
-  const handleGoToLogin = () => {
-    setExiting(true)
-    setTimeout(() => navigate('/login'), 320)
-  }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -57,8 +51,13 @@ function Register() {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      {/* Left side — form panel */}
-      <div className={`w-1/2 min-h-screen bg-white flex flex-col justify-center px-16 py-12 shadow-2xl ${exiting ? 'form-exit' : 'form-enter'}`}>
+      {/* Left side — shows background image */}
+      <div className="w-3/5 relative">
+        <div className="absolute inset-0" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+      </div>
+
+      {/* Right side — form panel */}
+      <div className="w-2/5 min-h-screen bg-white flex flex-col justify-center px-16 py-12 shadow-2xl">
 
         {/* Branding */}
         <div className="mb-8">
@@ -205,18 +204,11 @@ function Register() {
 
         <p className="text-center mt-7 text-sm text-textSecondary">
           Already have an account?{' '}
-          <button
-            type="button"
-            onClick={handleGoToLogin}
-            className="text-accent font-semibold hover:underline"
-          >
+          <Link to="/login" className="text-accent font-semibold hover:underline">
             Sign in
-          </button>
+          </Link>
         </p>
       </div>
-
-      {/* Right side — shows background image */}
-      <div className="w-1/2" />
     </div>
   )
 }

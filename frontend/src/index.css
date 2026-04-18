@@ -8,22 +8,3 @@
   }
 }
 
-/* Auth page transition animations */
-@keyframes formFadeIn {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes formFadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-20px); }
-}
-
-.form-enter {
-  animation: formFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.form-exit {
-  animation: formFadeOut 0.3s ease-in both;
-  pointer-events: none;
-}
