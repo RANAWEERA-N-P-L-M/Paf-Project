@@ -191,6 +191,13 @@ function Dashboard() {
                 <span className="font-semibold">Location:</span> {item.location || '-'}
               </p>
 
+              <p className="text-xs text-textSecondary mb-2">
+                <span className="font-semibold">Equipments:</span>{' '}
+                {Array.isArray(item.equipments) && item.equipments.length > 0
+                  ? item.equipments.join(', ')
+                  : '-'}
+              </p>
+
               {item.description && (
                 <p className="text-xs text-textSecondary border-t border-borderColor pt-2.5 leading-relaxed">
                   {item.description}
@@ -236,30 +243,31 @@ function Dashboard() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Hero */}
-        <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-5 sm:p-7 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-hoverGray flex items-center justify-center text-2xl">
-                {istechnician ? '🔧' : '👤'}
+        {activeView === 'dashboard' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-5 sm:p-7 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-hoverGray flex items-center justify-center text-2xl">
+                  {istechnician ? '🔧' : '👤'}
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">
+                    Welcome back!
+                  </h2>
+                  <p className="text-textSecondary text-sm mt-0.5">
+                    Signed in as a{' '}
+                    <span className={`font-semibold ${istechnician ? 'text-amber-700' : 'text-blue-700'}`}>
+                      {userType}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">
-                  Welcome back!
-                </h2>
-                <p className="text-textSecondary text-sm mt-0.5">
-                  Signed in as a{' '}
-                  <span className={`font-semibold ${istechnician ? 'text-amber-700' : 'text-blue-700'}`}>
-                    {userType}
-                  </span>
-                </p>
+              <div className="text-xs sm:text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg px-3 py-2 w-fit">
+                Keep your updates current for faster approvals
               </div>
             </div>
-            <div className="text-xs sm:text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg px-3 py-2 w-fit">
-              Keep your updates current for faster approvals
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {activeView === 'dashboard' ? (
           <>

@@ -2,6 +2,8 @@ package com.unicore.facility.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class CreateCatalogueRequest {
 
@@ -9,9 +11,11 @@ public class CreateCatalogueRequest {
 
     private String type;
 
-    private Integer capacity;
+    private String capacity;
 
     private String location;
+
+    private List<String> equipments;
 
     private String description;
 
