@@ -22,8 +22,15 @@ public class TechnicianTaskResponse {
 
     private Ticket.Status status;
 
+    private Ticket.Priority priority;
+
+    private Instant deadline;
+
+    private Ticket.SlaStatus slaStatus;
+
+    private Boolean escalated;
+
     private String rejectionReason;
 
     private Instant createdAt;
 }
-

@@ -21,7 +21,17 @@ public class TicketDashboardResponse {
 
     private Ticket.Status status;
 
+    private Ticket.Priority priority;
+
+    private Ticket.Category category;
+
     private Instant createdAt;
+
+    private Instant deadline;
+
+    private Ticket.SlaStatus slaStatus;
+
+    private Boolean escalated;
 
     private List<AssignedTechnicianDto> assignedTechnicians;
 }

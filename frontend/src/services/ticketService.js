@@ -68,10 +68,16 @@ const ticketService = {
       () => axios.get(`${apiAssignmentBase}/my`, withAuth())
     ),
 
-  assignTicket: (ticketId, technicianIds) =>
+  assignTicket: (ticketId, technicianIds, priority = null) =>
     requestWithFallback(
-      () => axios.post(`${ticketBase}/${ticketId}/assign`, { technicianIds }, withAuth()),
-      () => axios.post(`${apiTicketBase}/${ticketId}/assign`, { technicianIds }, withAuth())
+      () => axios.post(`${ticketBase}/${ticketId}/assign`, { technicianIds, priority }, withAuth()),
+      () => axios.post(`${apiTicketBase}/${ticketId}/assign`, { technicianIds, priority }, withAuth())
+    ),
+
+  updateTicketPriority: (ticketId, priority) =>
+    requestWithFallback(
+      () => axios.put(`${ticketBase}/${ticketId}/priority`, { priority }, withAuth()),
+      () => axios.put(`${apiTicketBase}/${ticketId}/priority`, { priority }, withAuth())
     ),
 
   acceptTask: (assignmentId) =>
@@ -100,6 +106,12 @@ const ticketService = {
     requestWithFallback(
       () => axios.put(`${assignmentBase}/${assignmentId}/status`, { status }, withAuth()),
       () => axios.put(`${apiAssignmentBase}/${assignmentId}/status`, { status }, withAuth())
+    ),
+
+  clearAllTickets: () =>
+    requestWithFallback(
+      () => axios.delete(`${ticketBase}/clear-all`, withAuth()),
+      () => axios.delete(`${apiTicketBase}/clear-all`, withAuth())
     ),
 }
 

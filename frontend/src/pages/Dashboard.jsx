@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
 import NotificationBell from '../components/NotificationBell'
+import ticketService from '../services/ticketService'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ function Dashboard() {
   const [cataloguesError, setCataloguesError] = useState('')
   const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
   const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
+  const [myTickets, setMyTickets] = useState([])
   const checked = useRef(false)
 
   const handleLogout = () => {
@@ -52,6 +54,20 @@ function Dashboard() {
     }
   }, [navigate])
 
+  const fetchMyTickets = useCallback(async () => {
+    try {
+      const response = await ticketService.getMyTickets()
+      setMyTickets(response.data || [])
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        authService.logout()
+        navigate('/login')
+        return
+      }
+      // Silently fail for tickets
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (checked.current) return
     checked.current = true
@@ -62,7 +78,8 @@ function Dashboard() {
     }
     setRole(r)
     fetchCatalogues()
-  }, [navigate, fetchCatalogues])
+    fetchMyTickets()
+  }, [navigate, fetchCatalogues, fetchMyTickets])
 
   const istechnician = role === 'TECHNICIAN'
   const userType = istechnician ? 'Technician' : 'User'
@@ -74,7 +91,7 @@ function Dashboard() {
       { label: 'Completed Today', value: '05', accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
     ]
     : [
-      { label: 'Active Requests', value: '04', accent: 'text-blue-700 bg-blue-50 border-blue-200' },
+      { label: 'Active Requests', value: String(myTickets.length).padStart(2, '0'), accent: 'text-blue-700 bg-blue-50 border-blue-200' },
       { label: 'Pending Approvals', value: '02', accent: 'text-amber-700 bg-amber-50 border-amber-200' },
       { label: 'Resolved', value: '16', accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
     ]

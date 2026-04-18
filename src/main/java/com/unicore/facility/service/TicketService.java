@@ -5,6 +5,7 @@ import com.unicore.entity.User;
 import com.unicore.facility.dto.AssignedTechnicianDto;
 import com.unicore.facility.dto.AssignTechniciansRequest;
 import com.unicore.facility.dto.CreateTicketRequest;
+import com.unicore.facility.dto.UpdateTicketPriorityRequest;
 import com.unicore.facility.dto.TicketDashboardResponse;
 import com.unicore.facility.entity.TechnicianAssignment;
 import com.unicore.facility.entity.Ticket;
@@ -53,7 +54,15 @@ public class TicketService {
         ticket.setTitle(request.getTitle().trim());
         ticket.setDescription(request.getDescription().trim());
         ticket.setStatus(Ticket.Status.OPEN);
-        ticket.setCreatedAt(Instant.now());
+        ticket.setPriority(Ticket.Priority.MEDIUM);
+        ticket.setCategory(Ticket.Category.OTHER);
+        ticket.setSlaStatus(Ticket.SlaStatus.ON_TIME);
+        ticket.setEscalated(false);
+        ticket.setCommentCount(0);
+        Instant now = Instant.now();
+        ticket.setCreatedAt(now);
+        ticket.setUpdatedAt(now);
+        ticket.setDeadline(calculateDeadline(now, Ticket.Priority.MEDIUM));
         ticket.setCreatedBy(createdBy);
 
         Ticket saved = ticketRepository.save(ticket);
@@ -76,6 +85,17 @@ public class TicketService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found."));
 
         ensureTicketOpen(ticket);
+
+        if (request.getPriority() != null && !request.getPriority().trim().isEmpty()) {
+            try {
+                Ticket.Priority newPriority = Ticket.Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ticket.setPriority(newPriority);
+                ticket.setDeadline(calculateDeadline(ticket.getCreatedAt(), newPriority));
+                ticketRepository.save(ticket);
+            } catch (Exception ex) {
+                throw new ValidationException("Invalid priority value.");
+            }
+        }
 
         List<TechnicianAssignment> existingAssignments = technicianAssignmentRepository.findByTicket(ticket);
         Set<String> existingTechnicianIds = new HashSet<>();
@@ -102,8 +122,11 @@ public class TicketService {
             TechnicianAssignment assignment = new TechnicianAssignment();
             assignment.setTicket(ticket);
             assignment.setTechnician(technician);
-            assignment.setStatus(Ticket.Status.OPEN);
+            assignment.setAssignmentStatus(Ticket.Status.OPEN);
             assignment.setRejectionReason(null);
+            assignment.setAssignedAt(Instant.now());
+            assignment.setIsDuplicate(false);
+            assignment.setPriority(newAssignments.size() + 1);
             newAssignments.add(assignment);
         }
 
@@ -123,6 +146,23 @@ public class TicketService {
             }
         }
         return saved;
+    }
+
+    public Ticket updateTicketPriority(String ticketId, UpdateTicketPriorityRequest request) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found."));
+
+        if (request.getPriority() != null && !request.getPriority().trim().isEmpty()) {
+            try {
+                Ticket.Priority newPriority = Ticket.Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ticket.setPriority(newPriority);
+                ticket.setDeadline(calculateDeadline(ticket.getCreatedAt(), newPriority));
+                return ticketRepository.save(ticket);
+            } catch (Exception ex) {
+                throw new ValidationException("Invalid priority value.");
+            }
+        }
+        return ticket;
     }
 
     public List<TicketDashboardResponse> getTicketsForAdmin(String status, Instant fromDate, Instant toDate) {
@@ -164,9 +204,13 @@ public class TicketService {
                     ticket.getTitle(),
                     ticket.getDescription(),
                     ticket.getStatus(),
+                    ticket.getPriority(),
+                    ticket.getCategory(),
                     ticket.getCreatedAt(),
-                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())
-            ));
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
+                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())));
         }
 
         return response;
@@ -199,9 +243,13 @@ public class TicketService {
                     ticket.getTitle(),
                     ticket.getDescription(),
                     ticket.getStatus(),
+                    ticket.getPriority(),
+                    ticket.getCategory(),
                     ticket.getCreatedAt(),
-                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())
-            ));
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
+                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())));
         }
         return response;
     }
@@ -254,9 +302,8 @@ public class TicketService {
                     technician != null ? technician.getId() : null,
                     technician != null ? technician.getName() : null,
                     technician != null ? technician.getEmail() : null,
-                    assignment.getStatus(),
-                    assignment.getRejectionReason()
-            );
+                    assignment.getAssignmentStatus(),
+                    assignment.getRejectionReason());
 
             grouped.computeIfAbsent(ticketId, key -> new ArrayList<>()).add(dto);
         }
@@ -286,5 +333,20 @@ public class TicketService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Instant calculateDeadline(Instant createdAt, Ticket.Priority priority) {
+        long hoursToAdd = switch (priority) {
+            case HIGH -> 24;
+            case MEDIUM -> 48;
+            case LOW -> 72;
+            case IMMEDIATE -> 6;
+        };
+        return createdAt.plusSeconds(hoursToAdd * 3600);
+    }
+
+    public void deleteAllTickets() {
+        technicianAssignmentRepository.deleteAll();
+        ticketRepository.deleteAll();
     }
 }

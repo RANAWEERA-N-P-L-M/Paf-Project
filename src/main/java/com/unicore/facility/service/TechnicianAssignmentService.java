@@ -17,6 +17,7 @@ import com.unicore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -47,15 +48,22 @@ public class TechnicianAssignmentService {
 
         for (TechnicianAssignment assignment : assignments) {
             Ticket ticket = assignment.getTicket();
+            // Skip assignments where ticket no longer exists (deleted)
+            if (ticket == null) {
+                continue;
+            }
             response.add(new TechnicianTaskResponse(
                     assignment.getId(),
-                    ticket != null ? ticket.getId() : null,
-                    ticket != null ? ticket.getTitle() : null,
-                    ticket != null ? ticket.getDescription() : null,
-                    assignment.getStatus(),
+                    ticket.getId(),
+                    ticket.getTitle(),
+                    ticket.getDescription(),
+                    assignment.getAssignmentStatus(),
+                    ticket.getPriority(),
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
                     assignment.getRejectionReason(),
-                    ticket != null ? ticket.getCreatedAt() : null
-            ));
+                    ticket.getCreatedAt()));
         }
 
         response.sort(Comparator.comparing(TechnicianTaskResponse::getCreatedAt,
@@ -66,11 +74,12 @@ public class TechnicianAssignmentService {
     public TechnicianAssignment acceptTask(String assignmentId) {
         TechnicianAssignment assignment = getAssignmentOrThrow(assignmentId);
 
-        if (assignment.getStatus() != Ticket.Status.OPEN) {
+        if (assignment.getAssignmentStatus() != Ticket.Status.OPEN) {
             throw new InvalidStatusTransitionException("Task can only be accepted from OPEN status.");
         }
 
-        assignment.setStatus(Ticket.Status.IN_PROGRESS);
+        assignment.setAssignmentStatus(Ticket.Status.IN_PROGRESS);
+        assignment.setAcceptedAt(Instant.now());
         assignment.setRejectionReason(null);
         TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
         syncTicketStatus(saved);
@@ -84,11 +93,13 @@ public class TechnicianAssignmentService {
             throw new ValidationException("rejectionReason is required.");
         }
 
-        if (assignment.getStatus() != Ticket.Status.OPEN && assignment.getStatus() != Ticket.Status.IN_PROGRESS) {
+        if (assignment.getAssignmentStatus() != Ticket.Status.OPEN
+                && assignment.getAssignmentStatus() != Ticket.Status.IN_PROGRESS) {
             throw new InvalidStatusTransitionException("Task can only be rejected from OPEN or IN_PROGRESS status.");
         }
 
-        assignment.setStatus(Ticket.Status.REJECTED);
+        assignment.setAssignmentStatus(Ticket.Status.REJECTED);
+        assignment.setRejectedAt(Instant.now());
         assignment.setRejectionReason(request.getRejectionReason().trim());
         TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
         syncTicketStatus(saved);
@@ -103,9 +114,12 @@ public class TechnicianAssignmentService {
         }
 
         Ticket.Status targetStatus = parseStatus(request.getStatus());
-        validateStatusUpdateTransition(assignment.getStatus(), targetStatus);
+        validateStatusUpdateTransition(assignment.getAssignmentStatus(), targetStatus);
 
-        assignment.setStatus(targetStatus);
+        assignment.setAssignmentStatus(targetStatus);
+        if (targetStatus == Ticket.Status.RESOLVED) {
+            assignment.setCompletedAt(Instant.now());
+        }
         assignment.setRejectionReason(null);
         TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
         syncTicketStatus(saved);
@@ -177,8 +191,9 @@ public class TechnicianAssignmentService {
             return;
         }
         Ticket ticket = assignment.getTicket();
-        if (ticket.getStatus() != assignment.getStatus()) {
-            ticket.setStatus(assignment.getStatus());
+        if (ticket.getStatus() != assignment.getAssignmentStatus()) {
+            ticket.setStatus(assignment.getAssignmentStatus());
+            ticket.setUpdatedAt(Instant.now());
             ticketRepository.save(ticket);
         }
     }
