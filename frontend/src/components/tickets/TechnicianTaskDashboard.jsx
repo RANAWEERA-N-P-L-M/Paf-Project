@@ -157,6 +157,14 @@ function TechnicianTaskDashboard() {
                         Deadline: {new Date(task.deadline).toLocaleString()}
                       </p>
                     )}
+                    {task.deadline && ['OPEN', 'IN_PROGRESS'].includes(task.status) && (
+                      <div className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-fit ${isEffectivelyExpired ? 'bg-red-100 border border-red-300' : isCritical ? 'bg-orange-50 border border-orange-300' : 'bg-emerald-50 border border-emerald-200'}`}>
+                        <span className="text-xs font-medium text-gray-500">⏱ Time left:</span>
+                        <span className={`text-sm font-bold tabular-nums ${isEffectivelyExpired ? 'text-red-600' : isCritical ? 'text-orange-600 animate-pulse' : 'text-emerald-700'}`}>
+                          {timeInfo ? (isEffectivelyExpired ? 'EXPIRED' : timeInfo.text) : '—'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <span
@@ -169,13 +177,6 @@ function TechnicianTaskDashboard() {
                     >
                       {task.priority}
                     </span>
-                    {['OPEN', 'IN_PROGRESS'].includes(task.status) && timeInfo && (
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${isEffectivelyExpired ? 'bg-red-600 text-white' : isCritical ? 'bg-orange-600 text-white animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}
-                      >
-                        {isEffectivelyExpired ? '⏱ EXPIRED' : timeInfo.text}
-                      </span>
-                    )}
                   </div>
                 </div>
 
