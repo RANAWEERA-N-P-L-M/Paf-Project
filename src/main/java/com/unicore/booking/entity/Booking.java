@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -34,6 +35,8 @@ public class Booking {
     private String purpose;
 
     private Integer attendees;
+
+    private List<String> selectedEquipments;
 
     private Status status;
 

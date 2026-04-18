@@ -16,11 +16,18 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
+
+    private static final Pattern CAPACITY_NUMBER_PATTERN = Pattern.compile("\\d+");
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
@@ -52,6 +59,7 @@ public class BookingService {
             null,
             "Booking conflict: this facility already has a booking request or approved booking in the selected time range.");
         validateAttendees(request.getAttendees(), parseCapacity(catalogue.getCapacity()));
+        List<String> selectedEquipments = validateSelectedEquipments(request.getSelectedEquipments(), catalogue.getEquipments());
 
         Booking booking = new Booking();
         booking.setUserId(user.getId());
@@ -62,6 +70,7 @@ public class BookingService {
         booking.setEndTime(request.getEndTime());
         booking.setPurpose(request.getPurpose().trim());
         booking.setAttendees(request.getAttendees());
+        booking.setSelectedEquipments(selectedEquipments);
         booking.setStatus(Booking.Status.PENDING);
         booking.setAdminResponse("");
         booking.setCreatedAt(Instant.now());
@@ -230,6 +239,45 @@ public class BookingService {
         return startA.isBefore(endB) && endA.isAfter(startB);
     }
 
+    private List<String> validateSelectedEquipments(List<String> requestedEquipments, List<String> availableEquipments) {
+        List<String> normalizedAvailable = normalizeEquipments(availableEquipments);
+        List<String> normalizedRequested = normalizeEquipments(requestedEquipments);
+
+        if (normalizedAvailable.isEmpty()) {
+            return normalizedRequested;
+        }
+
+        if (normalizedRequested.isEmpty()) {
+            throw new RuntimeException("Please select at least one equipment needed for this booking.");
+        }
+
+        Set<String> availableSet = new LinkedHashSet<>(normalizedAvailable);
+        boolean hasInvalidEquipment = normalizedRequested.stream().anyMatch(item -> !availableSet.contains(item));
+        if (hasInvalidEquipment) {
+            throw new RuntimeException("One or more selected equipments are not available in this facility.");
+        }
+
+        return normalizedRequested;
+    }
+
+    private List<String> normalizeEquipments(List<String> equipments) {
+        if (equipments == null || equipments.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String item : equipments) {
+            if (item == null) {
+                continue;
+            }
+            String trimmed = item.trim();
+            if (!trimmed.isEmpty()) {
+                normalized.add(trimmed);
+            }
+        }
+        return new ArrayList<>(normalized);
+    }
+
     private Booking findBookingById(String id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found."));
@@ -258,6 +306,7 @@ public class BookingService {
                 booking.getEndTime(),
                 booking.getPurpose(),
                 booking.getAttendees(),
+                booking.getSelectedEquipments(),
                 booking.getStatus(),
                 booking.getAdminResponse(),
                 booking.getCreatedAt()
@@ -273,11 +322,29 @@ public class BookingService {
     }
 
     private Integer parseCapacity(String capacity) {
-        if (capacity == null || capacity.trim().isEmpty()) return null;
-        try {
-            return Integer.parseInt(capacity.trim());
-        } catch (NumberFormatException e) {
+        if (capacity == null || capacity.trim().isEmpty()) {
             return null;
         }
+
+        String normalized = capacity.trim();
+        try {
+            int direct = Integer.parseInt(normalized);
+            return direct > 0 ? direct : null;
+        } catch (NumberFormatException ignored) {
+            // Fall through to range/text parsing.
+        }
+
+        Matcher matcher = CAPACITY_NUMBER_PATTERN.matcher(normalized);
+        Integer maxCapacity = null;
+        while (matcher.find()) {
+            int value = Integer.parseInt(matcher.group());
+            if (value <= 0) {
+                continue;
+            }
+            if (maxCapacity == null || value > maxCapacity) {
+                maxCapacity = value;
+            }
+        }
+        return maxCapacity;
     }
 }

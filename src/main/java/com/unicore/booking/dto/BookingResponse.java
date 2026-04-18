@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -35,6 +36,8 @@ public class BookingResponse {
     private String purpose;
 
     private Integer attendees;
+
+    private List<String> selectedEquipments;
 
     private Booking.Status status;
 

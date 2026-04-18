@@ -28,10 +28,18 @@ function Dashboard() {
       setCataloguesError('Unable to open booking form: missing facility id.')
       return
     }
+
+    const facilityEquipments = Array.isArray(item.equipments)
+      ? item.equipments
+        .map((equipment) => (equipment ?? '').toString().trim())
+        .filter(Boolean)
+      : []
+
     navigate(`/booking/${facilityId}`, {
       state: {
         facilityName: item.name || '',
         facilityCapacity: item.capacity ?? null,
+        facilityEquipments,
       },
     })
   }

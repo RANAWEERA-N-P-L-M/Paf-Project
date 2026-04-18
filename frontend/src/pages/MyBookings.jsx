@@ -162,6 +162,13 @@ function MyBookings() {
                     </p>
                   ) : null}
 
+                  {Array.isArray(item.selectedEquipments) && item.selectedEquipments.length > 0 ? (
+                    <p className="text-sm text-textSecondary mt-1">
+                      <span className="font-semibold text-textPrimary">Equipments:</span>{' '}
+                      {item.selectedEquipments.join(', ')}
+                    </p>
+                  ) : null}
+
                   {item.status === 'REJECTED' && item.adminResponse && (
                     <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2 mt-3">
                       <span className="font-semibold">Reason:</span> {item.adminResponse}

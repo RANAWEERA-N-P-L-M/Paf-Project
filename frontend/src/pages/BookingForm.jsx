@@ -5,17 +5,57 @@ import bookingService from '../services/bookingService'
 import catalogueService from '../services/catalogueService'
 import InputField from '../components/InputField'
 
+const getCapacityText = (value) => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  return String(value).trim()
+}
+
+const getCapacityLimit = (value) => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value)
+  }
+
+  const text = String(value).trim()
+  if (!text) {
+    return null
+  }
+
+  const parts = text.match(/\d+/g)
+  if (!parts || parts.length === 0) {
+    return null
+  }
+
+  const values = parts.map((item) => Number(item)).filter((item) => Number.isFinite(item) && item > 0)
+  if (values.length === 0) {
+    return null
+  }
+
+  return Math.max(...values)
+}
+
 function BookingForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const { facilityId } = useParams()
+  const initialCapacity = location.state?.facilityCapacity
 
   const [facilityName, setFacilityName] = useState(location.state?.facilityName || '')
-  const [facilityCapacity, setFacilityCapacity] = useState(
-    Number.isFinite(Number(location.state?.facilityCapacity)) && Number(location.state?.facilityCapacity) > 0
-      ? Number(location.state?.facilityCapacity)
-      : null
+  const [facilityCapacityText, setFacilityCapacityText] = useState(getCapacityText(initialCapacity))
+  const [facilityCapacityLimit, setFacilityCapacityLimit] = useState(getCapacityLimit(initialCapacity))
+  const [facilityEquipments, setFacilityEquipments] = useState(
+    Array.isArray(location.state?.facilityEquipments)
+      ? location.state.facilityEquipments
+        .map((equipment) => (equipment ?? '').toString().trim())
+        .filter(Boolean)
+      : []
   )
+  const [selectedEquipments, setSelectedEquipments] = useState([])
   const [catalogueLoading, setCatalogueLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -40,7 +80,9 @@ function BookingForm() {
       setError('')
       try {
         const response = await catalogueService.getCatalogues()
-        const selected = (response.data || []).find((item) => (item.id || item._id) === facilityId)
+        const selected = (response.data || []).find(
+          (item) => String(item.id || item._id) === String(facilityId)
+        )
 
         if (!selected) {
           setError('Selected facility was not found.')
@@ -48,8 +90,15 @@ function BookingForm() {
         }
 
         setFacilityName(selected.name || location.state?.facilityName || '')
-        const parsedCapacity = Number(selected.capacity)
-        setFacilityCapacity(Number.isFinite(parsedCapacity) && parsedCapacity > 0 ? parsedCapacity : null)
+        setFacilityCapacityText(getCapacityText(selected.capacity))
+        setFacilityCapacityLimit(getCapacityLimit(selected.capacity))
+        setFacilityEquipments(
+          Array.isArray(selected.equipments)
+            ? selected.equipments
+              .map((equipment) => (equipment ?? '').toString().trim())
+              .filter(Boolean)
+            : []
+        )
       } catch (err) {
         if (err.response?.status === 401 || err.response?.status === 403) {
           authService.logout()
@@ -75,6 +124,14 @@ function BookingForm() {
     }))
   }
 
+  const onToggleEquipment = (equipment) => {
+    setSelectedEquipments((prev) => (
+      prev.includes(equipment)
+        ? prev.filter((item) => item !== equipment)
+        : [...prev, equipment]
+    ))
+  }
+
   const onSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -90,6 +147,11 @@ function BookingForm() {
       return
     }
 
+    if (facilityEquipments.length > 0 && selectedEquipments.length === 0) {
+      setError('Please select at least one equipment needed for this booking.')
+      return
+    }
+
     if (form.endTime <= form.startTime) {
       setError('End time must be after start time.')
       return
@@ -102,8 +164,8 @@ function BookingForm() {
         setError('Attendees must be a whole number greater than 0.')
         return
       }
-      if (facilityCapacity !== null && attendeeCount > facilityCapacity) {
-        setError(`Attendees cannot exceed facility capacity (${facilityCapacity}).`)
+      if (facilityCapacityLimit !== null && attendeeCount > facilityCapacityLimit) {
+        setError(`Attendees cannot exceed facility capacity (${facilityCapacityText || facilityCapacityLimit}).`)
         return
       }
     }
@@ -118,6 +180,7 @@ function BookingForm() {
         endTime: form.endTime,
         purpose: trimmedPurpose,
         attendees: attendeeCount,
+        selectedEquipments,
       })
 
       alert('Booking request submitted successfully.')
@@ -184,7 +247,28 @@ function BookingForm() {
 
                 <div className="sm:col-span-2 bg-slate-50 border border-borderColor rounded-md px-3 py-2">
                   <p className="text-xs text-textSecondary">Capacity</p>
-                  <p className="text-sm font-semibold text-textPrimary mt-0.5">{facilityCapacity ?? '-'}</p>
+                  <p className="text-sm font-semibold text-textPrimary mt-0.5">{facilityCapacityText || '-'}</p>
+                </div>
+
+                <div className="sm:col-span-2 bg-slate-50 border border-borderColor rounded-md px-3 py-2">
+                  <p className="text-xs text-textSecondary">Facility Equipments</p>
+                  {facilityEquipments.length > 0 ? (
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {facilityEquipments.map((equipment) => (
+                        <label key={equipment} className="flex items-center gap-2 text-sm text-textPrimary">
+                          <input
+                            type="checkbox"
+                            checked={selectedEquipments.includes(equipment)}
+                            onChange={() => onToggleEquipment(equipment)}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          <span>{equipment}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold text-textPrimary mt-0.5">-</p>
+                  )}
                 </div>
 
                 <InputField
@@ -234,7 +318,7 @@ function BookingForm() {
                   name="attendees"
                   min="1"
                   step="1"
-                  max={facilityCapacity ?? undefined}
+                  max={facilityCapacityLimit ?? undefined}
                 />
               </div>
 
