@@ -4,6 +4,7 @@ import adminService from '../services/adminService'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
 import bookingService from '../services/bookingService'
+import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
 
 function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
@@ -867,7 +868,7 @@ function AdminDashboard() {
       return renderBookingsSection()
     }
     if (activeSection === 'tickets') {
-      return renderPlaceholder('Tickets', 'Track support and maintenance tickets here.')
+      return <AdminTicketDashboard technicians={users} />
     }
     return renderMainDashboard()
   }
