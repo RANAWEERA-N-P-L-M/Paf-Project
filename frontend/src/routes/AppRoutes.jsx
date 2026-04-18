@@ -9,6 +9,7 @@ import MyBookings from '../pages/MyBookings'
 import CreateTicketPage from '../pages/CreateTicketPage'
 import TechnicianTasksPage from '../pages/TechnicianTasksPage'
 import MyRaisedTicketsPage from '../pages/MyRaisedTicketsPage'
+import MostBookedResourcesReport from '../pages/MostBookedResourcesReport'
 
 function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ function AppRoutes() {
         <Route path="/tickets/create" element={<CreateTicketPage />} />
         <Route path="/tickets/my" element={<MyRaisedTicketsPage />} />
         <Route path="/technician/tasks" element={<TechnicianTasksPage />} />
+        <Route path="/admin/reports/most-booked-resources" element={<MostBookedResourcesReport />} />
       </Routes>
     </BrowserRouter>
   )

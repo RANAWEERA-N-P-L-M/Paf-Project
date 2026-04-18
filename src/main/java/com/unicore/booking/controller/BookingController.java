@@ -3,6 +3,7 @@ package com.unicore.booking.controller;
 import com.unicore.booking.dto.BookingDecisionRequest;
 import com.unicore.booking.dto.BookingResponse;
 import com.unicore.booking.dto.CreateBookingRequest;
+import com.unicore.booking.dto.MostBookedResourceResponse;
 import com.unicore.booking.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,12 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<BookingResponse>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    @GetMapping("/report/most-booked-resources")
+    @PreAuthorize("hasAnyRole('USER','TECHNICIAN','ADMIN')")
+    public ResponseEntity<List<MostBookedResourceResponse>> getMostBookedResources() {
+        return ResponseEntity.ok(bookingService.getMostBookedResources());
     }
 
     @PutMapping("/{id}/approve")

@@ -540,6 +540,41 @@ function Dashboard() {
         </button>
       </div>
 
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Types</option>
+          {catalogueTypeOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+
+        <select
+          value={capacityFilter}
+          onChange={(e) => setCapacityFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Capacities</option>
+          {catalogueCapacityOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Locations</option>
+          {catalogueLocationOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+
       {cataloguesLoading ? (
         <div className="flex items-center justify-center py-16 text-textSecondary text-sm gap-2">
           <span className="animate-spin">⏳</span> Loading facilities…

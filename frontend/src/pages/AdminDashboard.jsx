@@ -35,8 +35,6 @@ function AdminDashboard() {
     description: '',
     status: 'ACTIVE',
   })
-  const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
-  const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
   const [isEquipmentDropdownOpen, setIsEquipmentDropdownOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -446,11 +444,6 @@ function AdminDashboard() {
     },
   ]
 
-  const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
-  const filteredCatalogues = normalizedCatalogueSearch
-    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
-    : catalogues
-
   const renderUsersSection = () => (
     <div className="flex flex-col h-full">
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -680,12 +673,20 @@ function AdminDashboard() {
             {catalogues.length} catalogue{catalogues.length !== 1 ? 's' : ''} available
           </p>
         </div>
-        <button
-          onClick={openAddCatalogueModal}
-          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
-        >
-          Add Catalogue
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => navigate('/admin/reports/most-booked-resources')}
+            className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+          >
+            Generate Report
+          </button>
+          <button
+            onClick={openAddCatalogueModal}
+            className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+          >
+            Add Catalogue
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -693,13 +694,9 @@ function AdminDashboard() {
         <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
         </div>
-      ) : filteredCatalogues.length === 0 ? (
-        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
-          <p className="text-textSecondary text-sm">No catalogues found for that class name.</p>
-        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredCatalogues.map((item, idx) => (
+          {catalogues.map((item, idx) => (
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
