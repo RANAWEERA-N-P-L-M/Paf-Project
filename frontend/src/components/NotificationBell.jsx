@@ -99,12 +99,12 @@ function NotificationBell() {
       {/* Bell button */}
       <button
         onClick={handleBellClick}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
+        className="relative p-2 rounded-full hover:bg-white/20 transition-colors focus:outline-none"
         aria-label="Notifications"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-gray-600"
+          className="h-6 w-6 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
