@@ -29,6 +29,7 @@ function Dashboard() {
     navigate(`/booking/${facilityId}`, {
       state: {
         facilityName: item.name || '',
+        facilityCapacity: item.capacity ?? null,
       },
     })
   }

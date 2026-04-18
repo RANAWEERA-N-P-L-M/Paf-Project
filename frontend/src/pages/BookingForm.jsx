@@ -11,6 +11,11 @@ function BookingForm() {
   const { facilityId } = useParams()
 
   const [facilityName, setFacilityName] = useState(location.state?.facilityName || '')
+  const [facilityCapacity, setFacilityCapacity] = useState(
+    Number.isFinite(Number(location.state?.facilityCapacity)) && Number(location.state?.facilityCapacity) > 0
+      ? Number(location.state?.facilityCapacity)
+      : null
+  )
   const [catalogueLoading, setCatalogueLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -43,6 +48,8 @@ function BookingForm() {
         }
 
         setFacilityName(selected.name || location.state?.facilityName || '')
+        const parsedCapacity = Number(selected.capacity)
+        setFacilityCapacity(Number.isFinite(parsedCapacity) && parsedCapacity > 0 ? parsedCapacity : null)
       } catch (err) {
         if (err.response?.status === 401 || err.response?.status === 403) {
           authService.logout()
@@ -71,13 +78,14 @@ function BookingForm() {
   const onSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    const trimmedPurpose = form.purpose.trim()
 
     if (!isFacilityReady) {
       setError('Facility details are not available for booking.')
       return
     }
 
-    if (!form.bookingDate || !form.startTime || !form.endTime || !form.purpose.trim()) {
+    if (!form.bookingDate || !form.startTime || !form.endTime || !trimmedPurpose) {
       setError('Please fill all required fields.')
       return
     }
@@ -85,6 +93,19 @@ function BookingForm() {
     if (form.endTime <= form.startTime) {
       setError('End time must be after start time.')
       return
+    }
+
+    let attendeeCount = null
+    if (form.attendees !== '') {
+      attendeeCount = Number(form.attendees)
+      if (!Number.isInteger(attendeeCount) || attendeeCount <= 0) {
+        setError('Attendees must be a whole number greater than 0.')
+        return
+      }
+      if (facilityCapacity !== null && attendeeCount > facilityCapacity) {
+        setError(`Attendees cannot exceed facility capacity (${facilityCapacity}).`)
+        return
+      }
     }
 
     setSubmitting(true)
@@ -95,8 +116,8 @@ function BookingForm() {
         bookingDate: form.bookingDate,
         startTime: form.startTime,
         endTime: form.endTime,
-        purpose: form.purpose.trim(),
-        attendees: form.attendees ? Number(form.attendees) : null,
+        purpose: trimmedPurpose,
+        attendees: attendeeCount,
       })
 
       alert('Booking request submitted successfully.')
@@ -161,6 +182,11 @@ function BookingForm() {
                   <p className="text-sm font-semibold text-textPrimary mt-0.5 break-all">{facilityId}</p>
                 </div>
 
+                <div className="sm:col-span-2 bg-slate-50 border border-borderColor rounded-md px-3 py-2">
+                  <p className="text-xs text-textSecondary">Capacity</p>
+                  <p className="text-sm font-semibold text-textPrimary mt-0.5">{facilityCapacity ?? '-'}</p>
+                </div>
+
                 <InputField
                   label="Date"
                   type="date"
@@ -207,6 +233,8 @@ function BookingForm() {
                   placeholder="e.g. 25"
                   name="attendees"
                   min="1"
+                  step="1"
+                  max={facilityCapacity ?? undefined}
                 />
               </div>
 
