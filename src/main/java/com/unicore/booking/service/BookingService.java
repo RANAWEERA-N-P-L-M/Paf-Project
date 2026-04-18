@@ -29,13 +29,14 @@ public class BookingService {
 
     public BookingResponse createBooking(CreateBookingRequest request, String requesterEmail) {
         validateCreateRequest(request);
+        String facilityId = request.getFacilityId().trim();
 
         User user = findUserByEmail(requesterEmail);
         if (user.getStatus() != User.Status.APPROVED) {
             throw new RuntimeException("Only approved users can create bookings.");
         }
 
-        Catalogue catalogue = catalogueRepository.findById(request.getFacilityId().trim())
+        Catalogue catalogue = catalogueRepository.findById(facilityId)
                 .orElseThrow(() -> new RuntimeException("Facility not found."));
 
         if (catalogue.getStatus() != Catalogue.Status.ACTIVE) {
@@ -43,19 +44,18 @@ public class BookingService {
         }
 
         validateBookingTime(request.getBookingDate(), request.getStartTime(), request.getEndTime());
-        ensureNoOverlapWithApproved(request.getFacilityId().trim(),
+        ensureNoOverlapWithStatuses(facilityId,
                 request.getBookingDate(),
                 request.getStartTime(),
                 request.getEndTime(),
-                null);
-
-        if (request.getAttendees() != null && request.getAttendees() <= 0) {
-            throw new RuntimeException("Attendees must be greater than 0 when provided.");
-        }
+            List.of(Booking.Status.PENDING, Booking.Status.APPROVED),
+            null,
+            "Booking conflict: this facility already has a booking request or approved booking in the selected time range.");
+        validateAttendees(request.getAttendees(), catalogue.getCapacity());
 
         Booking booking = new Booking();
         booking.setUserId(user.getId());
-        booking.setFacilityId(catalogue.getId());
+        booking.setFacilityId(facilityId);
         booking.setFacilityName(catalogue.getName());
         booking.setBookingDate(request.getBookingDate());
         booking.setStartTime(request.getStartTime());
@@ -117,11 +117,13 @@ public class BookingService {
             throw new RuntimeException("Only pending bookings can be approved.");
         }
 
-        ensureNoOverlapWithApproved(booking.getFacilityId(),
+        ensureNoOverlapWithStatuses(booking.getFacilityId(),
                 booking.getBookingDate(),
                 booking.getStartTime(),
                 booking.getEndTime(),
-                booking.getId());
+            List.of(Booking.Status.APPROVED),
+            booking.getId(),
+            "Booking conflict: this facility already has an approved booking in the selected time range.");
 
         booking.setStatus(Booking.Status.APPROVED);
         booking.setAdminResponse(trimToEmpty(adminResponse));
@@ -187,23 +189,40 @@ public class BookingService {
         }
     }
 
-    private void ensureNoOverlapWithApproved(String facilityId,
+    private void ensureNoOverlapWithStatuses(String facilityId,
                                              LocalDate bookingDate,
                                              LocalTime startTime,
                                              LocalTime endTime,
-                                             String excludeBookingId) {
-        List<Booking> approvedBookings = bookingRepository.findByFacilityIdAndBookingDateAndStatus(
+                                             List<Booking.Status> statuses,
+                                             String excludeBookingId,
+                                             String conflictMessage) {
+        List<Booking> existingBookings = bookingRepository.findByFacilityIdAndBookingDateAndStatusIn(
                 facilityId,
                 bookingDate,
-                Booking.Status.APPROVED
+                statuses
         );
 
-        boolean hasOverlap = approvedBookings.stream()
+        boolean hasOverlap = existingBookings.stream()
                 .filter(existing -> excludeBookingId == null || !excludeBookingId.equals(existing.getId()))
                 .anyMatch(existing -> isOverlapping(startTime, endTime, existing.getStartTime(), existing.getEndTime()));
 
         if (hasOverlap) {
-            throw new RuntimeException("Booking conflict: this facility already has an approved booking in the selected time range.");
+            throw new RuntimeException(conflictMessage);
+        }
+    }
+
+    private void validateAttendees(Integer attendees, Integer facilityCapacity) {
+        if (attendees == null) {
+            return;
+        }
+        if (attendees <= 0) {
+            throw new RuntimeException("Attendees must be greater than 0 when provided.");
+        }
+        if (facilityCapacity == null || facilityCapacity <= 0) {
+            throw new RuntimeException("Facility capacity is not configured for booking.");
+        }
+        if (attendees > facilityCapacity) {
+            throw new RuntimeException("Attendees cannot exceed facility capacity (" + facilityCapacity + ").");
         }
     }
 
