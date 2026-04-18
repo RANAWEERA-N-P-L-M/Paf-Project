@@ -14,6 +14,9 @@ function Dashboard() {
   const [cataloguesError, setCataloguesError] = useState('')
   const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
   const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [capacityFilter, setCapacityFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
   const [myTickets, setMyTickets] = useState([])
   const checked = useRef(false)
 
@@ -117,9 +120,18 @@ function Dashboard() {
     ]
 
   const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
-  const filteredCatalogues = normalizedCatalogueSearch
-    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
-    : catalogues
+  const catalogueTypeOptions = [...new Set(catalogues.map((item) => (item.type || '').trim()).filter(Boolean))]
+  const catalogueCapacityOptions = [...new Set(catalogues.map((item) => (item.capacity || '').toString().trim()).filter(Boolean))]
+  const catalogueLocationOptions = [...new Set(catalogues.map((item) => (item.location || '').trim()).filter(Boolean))]
+
+  const filteredCatalogues = catalogues.filter((item) => {
+    const matchesSearch = !normalizedCatalogueSearch || (item.name || '').toLowerCase().includes(normalizedCatalogueSearch)
+    const matchesType = !typeFilter || (item.type || '') === typeFilter
+    const matchesCapacity = !capacityFilter || (item.capacity || '').toString() === capacityFilter
+    const matchesLocation = !locationFilter || (item.location || '') === locationFilter
+
+    return matchesSearch && matchesType && matchesCapacity && matchesLocation
+  })
 
   const renderCatalogueList = () => (
     <>
@@ -165,6 +177,41 @@ function Dashboard() {
         </button>
       </div>
 
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Types</option>
+          {catalogueTypeOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+
+        <select
+          value={capacityFilter}
+          onChange={(e) => setCapacityFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Capacities</option>
+          {catalogueCapacityOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">All Locations</option>
+          {catalogueLocationOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+
       {cataloguesLoading ? (
         <div className="text-sm text-textSecondary">Loading catalogues...</div>
       ) : cataloguesError ? (
@@ -177,7 +224,7 @@ function Dashboard() {
         </div>
       ) : filteredCatalogues.length === 0 ? (
         <div className="text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg p-3">
-          No catalogues found for that class name.
+          No catalogues match the selected filters.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -410,7 +457,7 @@ function Dashboard() {
             </section>
           </>
         ) : (
-          <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-4 sm:p-6">
+          <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-4 sm:p-6 max-h-[calc(100vh-150px)] overflow-y-auto pr-2">
             {renderCatalogueList()}
           </section>
         )}
