@@ -12,7 +12,7 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 
     List<Booking> findAllByOrderByCreatedAtDesc();
 
-    List<Booking> findByFacilityIdAndBookingDateAndStatus(String facilityId,
-                                                          LocalDate bookingDate,
-                                                          Booking.Status status);
+    List<Booking> findByFacilityIdAndBookingDateAndStatusIn(String facilityId,
+                                                            LocalDate bookingDate,
+                                                            List<Booking.Status> statuses);
 }
