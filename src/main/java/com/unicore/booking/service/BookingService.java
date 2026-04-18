@@ -4,10 +4,12 @@ import com.unicore.booking.dto.BookingResponse;
 import com.unicore.booking.dto.CreateBookingRequest;
 import com.unicore.booking.entity.Booking;
 import com.unicore.booking.repository.BookingRepository;
+import com.unicore.entity.Notification;
 import com.unicore.entity.User;
 import com.unicore.facility.entity.Catalogue;
 import com.unicore.facility.repository.CatalogueRepository;
 import com.unicore.repository.UserRepository;
+import com.unicore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final CatalogueRepository catalogueRepository;
+    private final NotificationService notificationService;
 
     public BookingResponse createBooking(CreateBookingRequest request, String requesterEmail) {
         validateCreateRequest(request);
@@ -63,7 +66,13 @@ public class BookingService {
         booking.setAdminResponse("");
         booking.setCreatedAt(Instant.now());
 
-        return toResponse(bookingRepository.save(booking));
+        BookingResponse response = toResponse(bookingRepository.save(booking));
+        notificationService.notifyAllAdmins(
+                "New booking request from " + user.getName() + " for " + catalogue.getName(),
+                Notification.Type.BOOKING,
+                response.getId()
+        );
+        return response;
     }
 
     public List<BookingResponse> getMyBookings(String requesterEmail) {
@@ -117,7 +126,14 @@ public class BookingService {
         booking.setStatus(Booking.Status.APPROVED);
         booking.setAdminResponse(trimToEmpty(adminResponse));
 
-        return toResponse(bookingRepository.save(booking));
+        BookingResponse response = toResponse(bookingRepository.save(booking));
+        notificationService.createNotification(
+                booking.getUserId(),
+                "Your booking for " + booking.getFacilityName() + " has been approved.",
+                Notification.Type.BOOKING,
+                booking.getId()
+        );
+        return response;
     }
 
     public BookingResponse rejectBooking(String bookingId, String reason) {
@@ -134,7 +150,14 @@ public class BookingService {
         booking.setStatus(Booking.Status.REJECTED);
         booking.setAdminResponse(reason.trim());
 
-        return toResponse(bookingRepository.save(booking));
+        BookingResponse response = toResponse(bookingRepository.save(booking));
+        notificationService.createNotification(
+                booking.getUserId(),
+                "Your booking for " + booking.getFacilityName() + " has been rejected.",
+                Notification.Type.BOOKING,
+                booking.getId()
+        );
+        return response;
     }
 
     private void validateCreateRequest(CreateBookingRequest request) {

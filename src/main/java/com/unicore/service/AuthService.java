@@ -4,6 +4,7 @@ import com.unicore.auth.JwtUtil;
 import com.unicore.dto.LoginRequest;
 import com.unicore.dto.LoginResponse;
 import com.unicore.dto.RegisterRequest;
+import com.unicore.entity.Notification;
 import com.unicore.entity.User;
 import com.unicore.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final NotificationService notificationService;
 
     public String register(RegisterRequest request) {
         if (request.getRole() == null || request.getRole() == User.Role.ADMIN) {
@@ -42,10 +44,16 @@ public class AuthService {
             user.setStatus(User.Status.APPROVED);
         }
 
-        userRepository.save(user);
-        return request.getRole() == User.Role.TECHNICIAN
-                ? "Registration successful. Await admin approval."
-                : "Registration successful. You can now login.";
+        User saved = userRepository.save(user);
+        if (request.getRole() == User.Role.TECHNICIAN) {
+            notificationService.notifyAllAdmins(
+                    "New technician registration pending approval: " + saved.getName() + " (" + saved.getEmail() + ")",
+                    Notification.Type.USER,
+                    saved.getId()
+            );
+            return "Registration successful. Await admin approval.";
+        }
+        return "Registration successful. You can now login.";
     }
 
     public Map<String, String> completeOAuth2Register(String email, String name, User.Role role) {
@@ -62,7 +70,12 @@ public class AuthService {
         user.setProvider(User.Provider.GOOGLE);
         if (role == User.Role.TECHNICIAN) {
             user.setStatus(User.Status.PENDING);
-            userRepository.save(user);
+            User saved = userRepository.save(user);
+            notificationService.notifyAllAdmins(
+                    "New technician registration pending approval: " + saved.getName() + " (" + saved.getEmail() + ")",
+                    Notification.Type.USER,
+                    saved.getId()
+            );
             return Map.of("message", "Registration submitted. Waiting for admin approval.");
         } else {
             user.setStatus(User.Status.APPROVED);
