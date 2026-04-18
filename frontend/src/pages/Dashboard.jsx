@@ -22,7 +22,15 @@ function Dashboard() {
     navigate('/login')
   }
 
+  const isOutOfService = (status) => String(status || '').trim().toUpperCase() === 'OUT_OF_SERVICE'
+
   const handleBookingClick = (item) => {
+    if (isOutOfService(item.status)) {
+      setCataloguesError('')
+      window.alert('This facility is out of service and cannot be booked.')
+      return
+    }
+
     const facilityId = item.id || item._id
     if (!facilityId) {
       setCataloguesError('Unable to open booking form: missing facility id.')
@@ -34,6 +42,8 @@ function Dashboard() {
         .map((equipment) => (equipment ?? '').toString().trim())
         .filter(Boolean)
       : []
+
+    setCataloguesError('')
 
     navigate(`/booking/${facilityId}`, {
       state: {
@@ -182,6 +192,7 @@ function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredCatalogues.map((item, idx) => (
+            
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
@@ -233,9 +244,13 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() => handleBookingClick(item)}
-                className="mt-3 w-full px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition"
+                className={`mt-3 w-full px-3 py-2 rounded-lg text-white text-sm font-semibold transition ${
+                  isOutOfService(item.status)
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-primary hover:opacity-90'
+                }`}
               >
-                Booking
+                {isOutOfService(item.status) ? 'Out of Service' : 'Booking'}
               </button>
             </div>
           ))}
