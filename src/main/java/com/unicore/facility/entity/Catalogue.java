@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -21,9 +22,11 @@ public class Catalogue {
 
     private String type;
 
-    private Integer capacity;
+    private String capacity;
 
     private String location;
+
+    private List<String> equipments;
 
     private String description;
 

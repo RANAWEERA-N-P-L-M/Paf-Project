@@ -11,6 +11,8 @@ function Dashboard() {
   const [catalogues, setCatalogues] = useState([])
   const [cataloguesLoading, setCataloguesLoading] = useState(true)
   const [cataloguesError, setCataloguesError] = useState('')
+  const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
+  const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
   const checked = useRef(false)
 
   const handleLogout = () => {
@@ -89,6 +91,11 @@ function Dashboard() {
       { title: 'Update Profile', helper: 'Keep your contact details and preferences current.' },
     ]
 
+  const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
+  const filteredCatalogues = normalizedCatalogueSearch
+    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
+    : catalogues
+
   const renderCatalogueList = () => (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -116,6 +123,23 @@ function Dashboard() {
         </div>
       </div>
 
+      <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <input
+          type="text"
+          value={catalogueSearchInput}
+          onChange={(e) => setCatalogueSearchInput(e.target.value)}
+          placeholder="Search by class name"
+          className="w-full sm:max-w-sm border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <button
+          type="button"
+          onClick={() => setCatalogueSearchTerm(catalogueSearchInput)}
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+        >
+          Search
+        </button>
+      </div>
+
       {cataloguesLoading ? (
         <div className="text-sm text-textSecondary">Loading catalogues...</div>
       ) : cataloguesError ? (
@@ -126,9 +150,13 @@ function Dashboard() {
         <div className="text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg p-3">
           No catalogues available yet.
         </div>
+      ) : filteredCatalogues.length === 0 ? (
+        <div className="text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg p-3">
+          No catalogues found for that class name.
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {catalogues.map((item, idx) => (
+          {filteredCatalogues.map((item, idx) => (
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
@@ -162,6 +190,13 @@ function Dashboard() {
 
               <p className="text-xs text-textSecondary mb-2">
                 <span className="font-semibold">Location:</span> {item.location || '-'}
+              </p>
+
+              <p className="text-xs text-textSecondary mb-2">
+                <span className="font-semibold">Equipments:</span>{' '}
+                {Array.isArray(item.equipments) && item.equipments.length > 0
+                  ? item.equipments.join(', ')
+                  : '-'}
               </p>
 
               {item.description && (
@@ -209,30 +244,31 @@ function Dashboard() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Hero */}
-        <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-5 sm:p-7 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-hoverGray flex items-center justify-center text-2xl">
-                {istechnician ? '🔧' : '👤'}
+        {activeView === 'dashboard' && (
+          <section className="bg-white rounded-2xl shadow-sm border border-borderColor p-5 sm:p-7 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-hoverGray flex items-center justify-center text-2xl">
+                  {istechnician ? '🔧' : '👤'}
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">
+                    Welcome back!
+                  </h2>
+                  <p className="text-textSecondary text-sm mt-0.5">
+                    Signed in as a{' '}
+                    <span className={`font-semibold ${istechnician ? 'text-amber-700' : 'text-blue-700'}`}>
+                      {userType}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">
-                  Welcome back!
-                </h2>
-                <p className="text-textSecondary text-sm mt-0.5">
-                  Signed in as a{' '}
-                  <span className={`font-semibold ${istechnician ? 'text-amber-700' : 'text-blue-700'}`}>
-                    {userType}
-                  </span>
-                </p>
+              <div className="text-xs sm:text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg px-3 py-2 w-fit">
+                Keep your updates current for faster approvals
               </div>
             </div>
-            <div className="text-xs sm:text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg px-3 py-2 w-fit">
-              Keep your updates current for faster approvals
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {activeView === 'dashboard' ? (
           <>

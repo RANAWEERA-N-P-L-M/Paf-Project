@@ -8,6 +8,16 @@ import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
 import NotificationBell from '../components/NotificationBell'
 
 function AdminDashboard() {
+  const catalogueTypeOptions = ['Lecture Hall', 'Lab', 'Meeting Room']
+  const locationOptions = ['New Building', 'Main Building']
+  const equipmentOptions = ['Projector', 'Camera', 'Sounds', 'Smart Screen']
+
+  const capacityOptionsByType = {
+    'Lecture Hall': ['50-60', '100-120'],
+    Lab: ['30-40', '50-60'],
+    'Meeting Room': ['1-5', '5-10'],
+  }
+
   const [activeSection, setActiveSection] = useState('dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [users, setUsers] = useState([])
@@ -20,9 +30,13 @@ function AdminDashboard() {
     type: '',
     capacity: '',
     location: '',
+    equipments: [],
     description: '',
     status: 'ACTIVE',
   })
+  const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
+  const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
+  const [isEquipmentDropdownOpen, setIsEquipmentDropdownOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [bookings, setBookings] = useState([])
@@ -33,6 +47,7 @@ function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('')
   const navigate = useNavigate()
   const initialized = useRef(false)
+  const equipmentDropdownRef = useRef(null)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -95,6 +110,19 @@ function AdminDashboard() {
     fetchBookings()
   }, [navigate, fetchUsers, fetchCatalogues, fetchBookings])
 
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!equipmentDropdownRef.current?.contains(event.target)) {
+        setIsEquipmentDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [])
+
   const handleApprove = async (id) => {
     try {
       await adminService.approveUser(id)
@@ -147,6 +175,28 @@ function AdminDashboard() {
     setCatalogueForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleCatalogueTypeChange = (value) => {
+    setCatalogueForm((prev) => ({
+      ...prev,
+      type: value,
+      capacity: '',
+    }))
+  }
+
+  const toggleEquipmentOption = (equipment) => {
+    setCatalogueForm((prev) => {
+      const alreadySelected = prev.equipments.includes(equipment)
+      return {
+        ...prev,
+        equipments: alreadySelected
+          ? prev.equipments.filter((item) => item !== equipment)
+          : [...prev.equipments, equipment],
+      }
+    })
+  }
+
+  const getCapacityOptions = () => capacityOptionsByType[catalogueForm.type] || []
+
   const getCatalogueId = (item) => item.id || item._id
 
   const resetCatalogueForm = () => {
@@ -155,10 +205,12 @@ function AdminDashboard() {
       type: '',
       capacity: '',
       location: '',
+      equipments: [],
       description: '',
       status: 'ACTIVE',
     })
     setEditingCatalogueId(null)
+    setIsEquipmentDropdownOpen(false)
   }
 
   const openAddCatalogueModal = () => {
@@ -173,9 +225,11 @@ function AdminDashboard() {
       type: item.type || '',
       capacity: item.capacity || '',
       location: item.location || '',
+      equipments: Array.isArray(item.equipments) ? item.equipments : [],
       description: item.description || '',
       status: item.status || 'ACTIVE',
     })
+    setIsEquipmentDropdownOpen(false)
     setShowCatalogueModal(true)
   }
 
@@ -205,9 +259,13 @@ function AdminDashboard() {
       return
     }
 
-    const parsedCapacity = Number(catalogueForm.capacity)
-    if (!parsedCapacity || parsedCapacity <= 0) {
-      setError('Capacity must be greater than 0.')
+    if (!catalogueForm.capacity.trim()) {
+      setError('Please select a capacity.')
+      return
+    }
+
+    if (!catalogueForm.equipments.length) {
+      setError('Please select at least one equipment.')
       return
     }
 
@@ -216,8 +274,9 @@ function AdminDashboard() {
       const payload = {
         name: catalogueForm.name,
         type: catalogueForm.type,
-        capacity: parsedCapacity,
+        capacity: catalogueForm.capacity,
         location: catalogueForm.location,
+        equipments: catalogueForm.equipments,
         description: catalogueForm.description,
         status: catalogueForm.status,
       }
@@ -345,6 +404,14 @@ function AdminDashboard() {
       icon: '👥',
     },
     {
+      key: 'facilities',
+      title: 'Total Catalogues',
+      count: catalogues.length,
+      accent: 'border-violet-200 bg-violet-50',
+      textColor: 'text-violet-700',
+      icon: '🏢',
+    },
+    {
       key: 'bookings',
       title: 'Total Bookings',
       count: bookings.length,
@@ -361,6 +428,11 @@ function AdminDashboard() {
       icon: '🎫',
     },
   ]
+
+  const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
+  const filteredCatalogues = normalizedCatalogueSearch
+    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
+    : catalogues
 
   const renderUsersSection = () => (
     <>
@@ -581,14 +653,6 @@ function AdminDashboard() {
     </>
   )
 
-  const renderPlaceholder = (title, description) => (
-    <div className="bg-white rounded-lg shadow-md border border-borderColor p-8 text-center">
-      <h2 className="text-2xl font-bold text-textPrimary mb-3">{title}</h2>
-      <p className="text-textSecondary text-sm mb-4">{description}</p>
-      <p className="text-xs text-textSecondary/80">This page is ready for your next features.</p>
-    </div>
-  )
-
   const renderFacilitiesSection = () => (
     <>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -607,13 +671,34 @@ function AdminDashboard() {
         </button>
       </div>
 
+      <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+        <input
+          type="text"
+          value={catalogueSearchInput}
+          onChange={(e) => setCatalogueSearchInput(e.target.value)}
+          placeholder="Search by class name"
+          className="w-full sm:max-w-sm border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <button
+          type="button"
+          onClick={() => setCatalogueSearchTerm(catalogueSearchInput)}
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+        >
+          Search
+        </button>
+      </div>
+
       {catalogues.length === 0 ? (
         <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
         </div>
+      ) : filteredCatalogues.length === 0 ? (
+        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
+          <p className="text-textSecondary text-sm">No catalogues found for that class name.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {catalogues.map((item, idx) => (
+          {filteredCatalogues.map((item, idx) => (
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
@@ -661,6 +746,13 @@ function AdminDashboard() {
 
               <div className="text-xs text-textSecondary mb-2">
                 <span className="font-semibold">Location:</span> {item.location || '-'}
+              </div>
+
+              <div className="text-xs text-textSecondary mb-2">
+                <span className="font-semibold">Equipments:</span>{' '}
+                {Array.isArray(item.equipments) && item.equipments.length > 0
+                  ? item.equipments.join(', ')
+                  : '-'}
               </div>
 
               {item.description && (
@@ -837,7 +929,7 @@ function AdminDashboard() {
   const renderMainDashboard = () => (
     <>
       <h2 className="text-2xl font-bold text-textPrimary mb-6">Main Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {summaryCards.map((card) => (
           <div
             key={card.key}
@@ -980,37 +1072,46 @@ function AdminDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-textSecondary mb-1">Type</label>
-                  <input
-                    type="text"
+                  <select
                     value={catalogueForm.type}
-                    onChange={(e) => handleCatalogueChange('type', e.target.value)}
+                    onChange={(e) => handleCatalogueTypeChange(e.target.value)}
                     className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="Lab"
-                  />
+                  >
+                    <option value="">Select Type</option>
+                    {catalogueTypeOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-textSecondary mb-1">Capacity</label>
-                  <input
-                    type="number"
-                    min="1"
+                  <select
                     value={catalogueForm.capacity}
                     onChange={(e) => handleCatalogueChange('capacity', e.target.value)}
                     className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="40"
-                  />
+                    disabled={!catalogueForm.type}
+                  >
+                    <option value="">Select Capacity</option>
+                    {getCapacityOptions().map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-textSecondary mb-1">Location</label>
-                  <input
-                    type="text"
+                  <select
                     value={catalogueForm.location}
                     onChange={(e) => handleCatalogueChange('location', e.target.value)}
                     className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="Engineering Building"
-                  />
+                  >
+                    <option value="">Select Location</option>
+                    {locationOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-textSecondary mb-1">Status</label>
@@ -1023,6 +1124,48 @@ function AdminDashboard() {
                     <option value="OUT_OF_SERVICE">OUT OF SERVICE</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-textSecondary mb-1">Equipments</label>
+                <div className="relative" ref={equipmentDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsEquipmentDropdownOpen((prev) => !prev)}
+                    className="w-full border border-borderColor rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                  >
+                    {catalogueForm.equipments.length
+                      ? catalogueForm.equipments.join(', ')
+                      : 'Select Equipments'}
+                  </button>
+
+                  {isEquipmentDropdownOpen && (
+                    <div className="absolute z-20 mt-1 w-full max-h-44 overflow-auto border border-borderColor rounded-lg bg-white shadow-md p-1">
+                      {equipmentOptions.map((option) => {
+                        const isSelected = catalogueForm.equipments.includes(option)
+                        return (
+                          <label
+                            key={option}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              toggleEquipmentOption(option)
+                            }}
+                            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer text-sm text-textPrimary"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleEquipmentOption(option)}
+                              className="h-3.5 w-3.5"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-textSecondary mt-1">Click or right-click an item to tick or untick it.</p>
               </div>
 
               <div>

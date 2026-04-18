@@ -26,8 +26,9 @@ public class CatalogueService {
         Catalogue catalogue = new Catalogue();
         catalogue.setName(request.getName().trim());
         catalogue.setType(request.getType().trim());
-        catalogue.setCapacity(request.getCapacity());
+        catalogue.setCapacity(request.getCapacity().trim());
         catalogue.setLocation(request.getLocation().trim());
+        catalogue.setEquipments(request.getEquipments() == null ? List.of() : request.getEquipments());
         catalogue.setDescription(request.getDescription() == null ? "" : request.getDescription().trim());
         catalogue.setStatus(parseStatus(request.getStatus()));
         catalogue.setCreatedAt(Instant.now());
@@ -43,8 +44,9 @@ public class CatalogueService {
 
         catalogue.setName(request.getName().trim());
         catalogue.setType(request.getType().trim());
-        catalogue.setCapacity(request.getCapacity());
+        catalogue.setCapacity(request.getCapacity().trim());
         catalogue.setLocation(request.getLocation().trim());
+        catalogue.setEquipments(request.getEquipments() == null ? List.of() : request.getEquipments());
         catalogue.setDescription(request.getDescription() == null ? "" : request.getDescription().trim());
         catalogue.setStatus(parseStatus(request.getStatus()));
 
@@ -68,8 +70,8 @@ public class CatalogueService {
         if (isBlank(request.getType())) {
             throw new RuntimeException("Type is required.");
         }
-        if (request.getCapacity() == null || request.getCapacity() <= 0) {
-            throw new RuntimeException("Capacity must be greater than 0.");
+        if (isBlank(request.getCapacity())) {
+            throw new RuntimeException("Capacity is required.");
         }
         if (isBlank(request.getLocation())) {
             throw new RuntimeException("Location is required.");
