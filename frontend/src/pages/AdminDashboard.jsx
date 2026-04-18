@@ -435,7 +435,7 @@ function AdminDashboard() {
     : catalogues
 
   const renderUsersSection = () => (
-    <>
+    <div className="flex flex-col h-full">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="text-xl font-semibold text-textPrimary">Users</h2>
         <p className="text-textSecondary text-sm">
@@ -539,10 +539,10 @@ function AdminDashboard() {
         ))}
       </div>
 
-      <div className="hidden md:block bg-white rounded-lg shadow-md border border-borderColor overflow-x-auto">
+      <div className="hidden md:block bg-white rounded-lg shadow-md border border-borderColor overflow-y-auto overflow-x-auto flex-1 min-h-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-100 border-b border-borderColor">
+            <tr className="bg-gray-100 border-b border-borderColor sticky top-0 z-10">
               <th className="px-4 py-3 text-left font-semibold text-textSecondary">Name</th>
               <th className="px-4 py-3 text-left font-semibold text-textSecondary">Email</th>
               <th className="px-4 py-3 text-left font-semibold text-textSecondary">Role</th>
@@ -650,12 +650,12 @@ function AdminDashboard() {
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   )
 
   const renderFacilitiesSection = () => (
-    <>
-      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="flex flex-col h-full">
+      <div className="mb-5 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-textPrimary">Facilities & Catalogues</h2>
           <p className="text-sm text-textSecondary mt-1">Manage all facility catalogues in one place.</p>
@@ -671,23 +671,7 @@ function AdminDashboard() {
         </button>
       </div>
 
-      <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
-        <input
-          type="text"
-          value={catalogueSearchInput}
-          onChange={(e) => setCatalogueSearchInput(e.target.value)}
-          placeholder="Search by class name"
-          className="w-full sm:max-w-sm border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <button
-          type="button"
-          onClick={() => setCatalogueSearchTerm(catalogueSearchInput)}
-          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
-        >
-          Search
-        </button>
-      </div>
-
+      <div className="flex-1 min-h-0 overflow-y-auto">
       {catalogues.length === 0 ? (
         <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
@@ -764,7 +748,8 @@ function AdminDashboard() {
           ))}
         </div>
       )}
-    </>
+      </div>
+    </div>
   )
 
   const renderBookingsSection = () => (
@@ -975,8 +960,8 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-bgLight">
-      <nav className="bg-primary text-white px-4 sm:px-6 py-3 flex items-center justify-between shadow-md">
+    <div className="h-screen flex flex-col bg-bgLight overflow-hidden">
+      <nav className="bg-primary text-white px-4 sm:px-6 py-3 flex items-center justify-between shadow-md shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-lg sm:text-xl font-bold tracking-tight">UniCore Admin</h1>
           <span className="hidden sm:inline text-xs px-2 py-1 rounded-full bg-white/20">
@@ -1000,10 +985,10 @@ function AdminDashboard() {
         </div>
       </nav>
 
-      <main className="w-full px-3 sm:px-5 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6 items-stretch min-h-[calc(100vh-88px)]">
-          <aside className={`${isMenuOpen ? 'block mb-1 lg:mb-0' : 'hidden lg:block'} lg:h-full`}>
-            <div className="bg-white border border-borderColor rounded-2xl shadow-sm p-4 h-full min-h-[calc(100vh-88px)] overflow-y-auto">
+      <main className="flex-1 overflow-hidden w-full px-3 sm:px-5 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6 h-full">
+          <aside className={`${isMenuOpen ? 'block mb-1 lg:mb-0' : 'hidden lg:block'} lg:h-full overflow-hidden`}>
+            <div className="bg-white border border-borderColor rounded-2xl shadow-sm p-4 h-full overflow-y-auto">
               <p className="px-3 pb-3 text-xs uppercase tracking-wide text-textSecondary font-semibold border-b border-borderColor">
                 Navigation
               </p>
@@ -1029,14 +1014,16 @@ function AdminDashboard() {
             </div>
           </aside>
 
-          <section className="min-w-0 bg-white border border-borderColor rounded-2xl shadow-sm p-4 sm:p-6">
+          <section className="min-w-0 bg-white border border-borderColor rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col overflow-hidden">
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-md mb-6 text-sm">
                 {error}
               </div>
             )}
 
-            {renderSectionContent()}
+            <div className="flex-1 flex flex-col min-h-0">
+              {renderSectionContent()}
+            </div>
           </section>
         </div>
       </main>

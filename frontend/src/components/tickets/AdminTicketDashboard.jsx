@@ -79,8 +79,8 @@ function AdminTicketDashboard({ technicians = [] }) {
   )
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+    <div className="flex flex-col h-full gap-4">
+      <div className="shrink-0 flex flex-col lg:flex-row lg:items-end gap-3">
         <div>
           <label className="block text-xs font-semibold text-textSecondary mb-1">Status</label>
           <select
@@ -116,11 +116,12 @@ function AdminTicketDashboard({ technicians = [] }) {
       </div>
 
       {error && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="shrink-0 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
           {error}
         </div>
       )}
 
+      <div className="flex-1 min-h-0 overflow-y-auto">
       {loading ? (
         <p className="text-sm text-textSecondary">Loading tickets...</p>
       ) : preparedTickets.length === 0 ? (
@@ -131,7 +132,7 @@ function AdminTicketDashboard({ technicians = [] }) {
         <div className="bg-white border border-borderColor rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-borderColor">
+              <tr className="bg-slate-50 border-b border-borderColor sticky top-0 z-10">
                 <th className="px-4 py-3 text-left font-semibold text-textSecondary">Title</th>
                 <th className="px-4 py-3 text-left font-semibold text-textSecondary">Status</th>
                 <th className="px-4 py-3 text-left font-semibold text-textSecondary">Created Time</th>
@@ -187,6 +188,7 @@ function AdminTicketDashboard({ technicians = [] }) {
           </table>
         </div>
       )}
+      </div>
     </div>
   )
 }
