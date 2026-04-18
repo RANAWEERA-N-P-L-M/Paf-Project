@@ -345,6 +345,14 @@ function AdminDashboard() {
       icon: '👥',
     },
     {
+      key: 'facilities',
+      title: 'Total Catalogues',
+      count: catalogues.length,
+      accent: 'border-violet-200 bg-violet-50',
+      textColor: 'text-violet-700',
+      icon: '🏢',
+    },
+    {
       key: 'bookings',
       title: 'Total Bookings',
       count: bookings.length,
@@ -579,14 +587,6 @@ function AdminDashboard() {
         </table>
       </div>
     </>
-  )
-
-  const renderPlaceholder = (title, description) => (
-    <div className="bg-white rounded-lg shadow-md border border-borderColor p-8 text-center">
-      <h2 className="text-2xl font-bold text-textPrimary mb-3">{title}</h2>
-      <p className="text-textSecondary text-sm mb-4">{description}</p>
-      <p className="text-xs text-textSecondary/80">This page is ready for your next features.</p>
-    </div>
   )
 
   const renderFacilitiesSection = () => (
@@ -837,7 +837,7 @@ function AdminDashboard() {
   const renderMainDashboard = () => (
     <>
       <h2 className="text-2xl font-bold text-textPrimary mb-6">Main Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {summaryCards.map((card) => (
           <div
             key={card.key}
