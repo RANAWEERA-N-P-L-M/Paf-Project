@@ -17,6 +17,19 @@ function Dashboard() {
     navigate('/login')
   }
 
+  const handleBookingClick = (item) => {
+    const facilityId = item.id || item._id
+    if (!facilityId) {
+      setCataloguesError('Unable to open booking form: missing facility id.')
+      return
+    }
+    navigate(`/booking/${facilityId}`, {
+      state: {
+        facilityName: item.name || '',
+      },
+    })
+  }
+
   const fetchCatalogues = useCallback(async () => {
     setCataloguesLoading(true)
     setCataloguesError('')
@@ -81,15 +94,24 @@ function Dashboard() {
           <h3 className="text-lg sm:text-xl font-semibold text-textPrimary">Available catalogues</h3>
           <p className="text-sm text-textSecondary">Facilities and assets added by admin.</p>
         </div>
-        {activeView === 'catalogues' && (
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setActiveView('dashboard')}
+            onClick={() => navigate('/my-bookings')}
             className="w-fit px-3 py-1.5 rounded-lg border border-borderColor text-sm font-semibold text-textSecondary hover:bg-hoverGray transition"
           >
-            Back to dashboard
+            My Bookings
           </button>
-        )}
+          {activeView === 'catalogues' && (
+            <button
+              type="button"
+              onClick={() => setActiveView('dashboard')}
+              className="w-fit px-3 py-1.5 rounded-lg border border-borderColor text-sm font-semibold text-textSecondary hover:bg-hoverGray transition"
+            >
+              Back to dashboard
+            </button>
+          )}
+        </div>
       </div>
 
       {cataloguesLoading ? (
@@ -148,6 +170,7 @@ function Dashboard() {
 
               <button
                 type="button"
+                onClick={() => handleBookingClick(item)}
                 className="mt-3 w-full px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition"
               >
                 Booking
