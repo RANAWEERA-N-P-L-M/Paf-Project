@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BACKEND_ORIGIN } from '../config/api'
 import authService from '../services/authService'
 
@@ -9,8 +9,14 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  const handleGoToRegister = () => {
+    setExiting(true)
+    setTimeout(() => navigate('/register'), 320)
+  }
 
   const pendingMsg = searchParams.get('msg') === 'pending'
     ? 'Your account is awaiting admin approval.'
@@ -18,6 +24,8 @@ function Login() {
     ? 'Your account has been rejected.'
     : searchParams.get('msg') === 'error'
     ? 'Google login failed. Please try again.'
+    : searchParams.get('msg') === 'registered'
+    ? 'Registration successful! You can now log in.'
     : null
 
   const handleLogin = async (e) => {
@@ -40,59 +48,104 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-bgLight flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        {/* Title */}
-        <h2 className="text-2xl font-bold text-textPrimary text-center mb-6">
-          Login to UniCore
-        </h2>
+    <div
+      className="min-h-screen flex"
+      style={{
+        backgroundImage: "url('/paf_L.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Left side — shows background image */}
+      <div className="flex-1" />
+
+      {/* Right side — form panel */}
+      <div className={`flex-1 min-h-screen bg-white flex flex-col justify-center px-16 py-12 shadow-2xl ${exiting ? 'form-exit' : 'form-enter'}`}>
+
+        {/* Branding */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 17.22V21H3v-3.78a12.083 12.083 0 012.84-6.642L12 14z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-extrabold text-textPrimary tracking-tight">UniCore</h1>
+          </div>
+          <h2 className="text-xl font-bold text-textPrimary">Welcome back</h2>
+          <p className="text-sm text-textSecondary mt-1">Sign in to continue to your account</p>
+        </div>
 
         {/* Info / Error messages */}
         {pendingMsg && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 px-4 py-3 rounded-md mb-4 text-sm">
+          <div className={`flex items-start gap-2 px-4 py-3 rounded-lg mb-5 text-sm ${
+            searchParams.get('msg') === 'registered'
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-blue-50 border border-blue-200 text-blue-700'
+          }`}>
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
             {pendingMsg}
           </div>
         )}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-md mb-4 text-sm">
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-5 text-sm">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-textSecondary mb-1">
-              Email
+            <label className="block text-sm font-semibold text-textPrimary mb-1.5">
+              Email address
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent transition duration-200"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-textSecondary">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="w-full pl-9 pr-3 py-2.5 border border-borderColor rounded-lg bg-white text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
+              />
+            </div>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-semibold text-textSecondary mb-1">
+            <label className="block text-sm font-semibold text-textPrimary mb-1.5">
               Password
             </label>
-            <div className="flex gap-2">
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-textSecondary">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
-                className="flex-1 px-3 py-2 border border-borderColor rounded-md bg-white text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent transition duration-200"
+                className="w-full pl-9 pr-16 py-2.5 border border-borderColor rounded-lg bg-white text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition duration-200"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="px-3 py-2 text-sm text-textSecondary bg-hoverGray border border-borderColor rounded-md hover:bg-gray-200 transition duration-200 whitespace-nowrap"
+                className="absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-textSecondary hover:text-textPrimary transition"
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -103,23 +156,31 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 mt-2 bg-primary text-white font-semibold rounded-md hover:bg-[#1f2a30] disabled:opacity-60 disabled:cursor-not-allowed transition duration-200 active:scale-[0.98]"
+            className="w-full py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-[#1f2a30] disabled:opacity-60 disabled:cursor-not-allowed transition duration-200 active:scale-[0.98] shadow-sm"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Signing in...
+              </span>
+            ) : 'Sign In'}
           </button>
         </form>
 
         {/* Divider */}
-        <div className="flex items-center gap-3 my-4">
+        <div className="flex items-center gap-3 my-5">
           <hr className="flex-1 border-borderColor" />
-          <span className="text-xs text-textSecondary">OR</span>
+          <span className="text-xs text-textSecondary font-medium">OR CONTINUE WITH</span>
           <hr className="flex-1 border-borderColor" />
         </div>
 
         {/* Google button */}
         <button
           onClick={handleGoogleLogin}
-          className="w-full py-2 flex items-center justify-center gap-2 border border-borderColor bg-white text-textPrimary font-medium rounded-md hover:bg-hoverGray transition duration-200 active:scale-[0.98]"
+          className="w-full py-2.5 flex items-center justify-center gap-3 border border-borderColor bg-white text-textPrimary font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition duration-200 active:scale-[0.98] shadow-sm"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -130,11 +191,15 @@ function Login() {
           Continue with Google
         </button>
 
-        <p className="text-center mt-5 text-sm text-textSecondary">
+        <p className="text-center mt-7 text-sm text-textSecondary">
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="text-accent font-semibold hover:underline">
-            Register
-          </Link>
+          <button
+            type="button"
+            onClick={handleGoToRegister}
+            className="text-accent font-semibold hover:underline"
+          >
+            Create one
+          </button>
         </p>
       </div>
     </div>
