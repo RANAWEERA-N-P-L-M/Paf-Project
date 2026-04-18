@@ -231,9 +231,9 @@ function Dashboard() {
       ]
     : [
         { id: 'home', icon: '🏠', label: 'Dashboard' },
+        { id: 'facilities', icon: '🏛️', label: 'Facilities & Catalogues' },
         { id: 'tickets', icon: '🎫', label: 'My Tickets' },
         { id: 'bookings', icon: '📅', label: 'My Bookings' },
-        { id: 'facilities', icon: '🏛️', label: 'Browse Facilities' },
         { id: 'new', icon: '➕', label: 'New Request' },
       ]
 
@@ -524,31 +524,24 @@ function Dashboard() {
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-lg font-bold text-textPrimary">Browse Facilities</h3>
+          <h3 className="text-lg font-bold text-textPrimary">Facilities & Catalogues</h3>
           <p className="text-sm text-textSecondary mt-0.5">Book a facility for your event or class.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setActiveSection('home')}
-          className="text-sm text-textSecondary hover:text-textPrimary border border-borderColor rounded-lg px-3 py-1.5 hover:bg-hoverGray transition"
-        >
-          ← Back
-        </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+      <div className="mb-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
         <input
           type="text"
           value={catalogueSearchInput}
           onChange={e => setCatalogueSearchInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && setCatalogueSearchTerm(catalogueSearchInput)}
           placeholder="Search facility by name…"
-          className="flex-1 border border-borderColor rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full sm:max-w-sm border border-borderColor rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
         <button
           type="button"
           onClick={() => setCatalogueSearchTerm(catalogueSearchInput)}
-          className="px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition"
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
         >
           Search
         </button>
@@ -716,7 +709,7 @@ function Dashboard() {
                 <ActionBtn icon="➕" label="Submit New Request" sub="Raise a maintenance or service ticket" onClick={() => setActiveSection('new')} />
                 <ActionBtn icon="🎫" label="Track My Tickets" sub="View status of all your requests" onClick={() => setActiveSection('tickets')} />
                 <ActionBtn icon="📅" label="My Bookings" sub="View and manage your bookings" onClick={() => setActiveSection('bookings')} />
-                <ActionBtn icon="🏛️" label="Browse Facilities" sub="View all available facilities" onClick={() => { setActiveSection('facilities'); if (catalogues.length === 0) fetchCatalogues() }} />
+                <ActionBtn icon="🏛️" label="Facilities & Catalogues" sub="View all available facilities" onClick={() => { setActiveSection('facilities'); if (catalogues.length === 0) fetchCatalogues() }} />
               </>
             )}
           </div>
@@ -766,7 +759,7 @@ function Dashboard() {
                 <div className="flex flex-col items-center justify-center py-8 text-textSecondary text-sm gap-2">
                   <span className="text-4xl">📅</span>
                   <p className="font-medium">No bookings yet.</p>
-                  <button type="button" onClick={() => { setActiveSection('facilities'); if (catalogues.length === 0) fetchCatalogues() }} className="mt-1 text-xs border border-borderColor text-textSecondary hover:bg-hoverGray px-4 py-1.5 rounded-lg transition">Browse facilities</button>
+                  <button type="button" onClick={() => { setActiveSection('facilities'); if (catalogues.length === 0) fetchCatalogues() }} className="mt-1 text-xs border border-borderColor text-textSecondary hover:bg-hoverGray px-4 py-1.5 rounded-lg transition">Facilities & Catalogues</button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
