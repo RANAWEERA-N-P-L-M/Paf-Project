@@ -190,8 +190,9 @@ function Dashboard() {
       return
     }
     setRole(r)
+    fetchCatalogues()
     fetchDashboardData(r === 'TECHNICIAN')
-  }, [navigate, fetchDashboardData])
+  }, [navigate, fetchCatalogues, fetchDashboardData])
 
   const isTech = role === 'TECHNICIAN'
   const currentUser = useCurrentUser()
