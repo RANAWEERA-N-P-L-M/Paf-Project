@@ -1,7 +1,9 @@
 package com.unicore.admin.service;
 
+import com.unicore.entity.Notification;
 import com.unicore.entity.User;
 import com.unicore.repository.UserRepository;
+import com.unicore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -22,13 +25,27 @@ public class AdminService {
     public User approveUser(String id) {
         User user = findUserById(id);
         user.setStatus(User.Status.APPROVED);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        notificationService.createNotification(
+                saved.getId(),
+                "Your account has been approved. You can now log in.",
+                Notification.Type.USER,
+                saved.getId()
+        );
+        return saved;
     }
 
     public User rejectUser(String id) {
         User user = findUserById(id);
         user.setStatus(User.Status.REJECTED);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        notificationService.createNotification(
+                saved.getId(),
+                "Your account registration has been rejected. Please contact the administrator.",
+                Notification.Type.USER,
+                saved.getId()
+        );
+        return saved;
     }
 
     public void deleteUser(String id) {

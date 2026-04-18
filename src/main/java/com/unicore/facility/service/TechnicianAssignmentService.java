@@ -1,5 +1,6 @@
 package com.unicore.facility.service;
 
+import com.unicore.entity.Notification;
 import com.unicore.entity.User;
 import com.unicore.facility.dto.RejectAssignmentRequest;
 import com.unicore.facility.dto.TechnicianTaskResponse;
@@ -12,6 +13,7 @@ import com.unicore.facility.exception.ValidationException;
 import com.unicore.facility.repository.TechnicianAssignmentRepository;
 import com.unicore.facility.repository.TicketRepository;
 import com.unicore.repository.UserRepository;
+import com.unicore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,7 @@ public class TechnicianAssignmentService {
     private final TechnicianAssignmentRepository technicianAssignmentRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public List<TechnicianTaskResponse> getMyTasks(String authenticatedEmail) {
         if (isBlank(authenticatedEmail) || "anonymousUser".equalsIgnoreCase(authenticatedEmail)) {
@@ -106,6 +109,31 @@ public class TechnicianAssignmentService {
         assignment.setRejectionReason(null);
         TechnicianAssignment saved = technicianAssignmentRepository.save(assignment);
         syncTicketStatus(saved);
+
+        if (targetStatus == Ticket.Status.RESOLVED || targetStatus == Ticket.Status.CLOSED) {
+            Ticket ticket = saved.getTechnician() != null ? saved.getTicket() : null;
+            if (ticket != null) {
+                String techName = saved.getTechnician() != null ? saved.getTechnician().getName() : "A technician";
+                String statusLabel = targetStatus == Ticket.Status.RESOLVED ? "resolved" : "closed";
+                String ticketTitle = ticket.getTitle();
+                // Notify ticket creator
+                if (ticket.getCreatedBy() != null) {
+                    notificationService.createNotification(
+                            ticket.getCreatedBy().getId(),
+                            "Your ticket \"" + ticketTitle + "\" has been " + statusLabel + " by " + techName,
+                            Notification.Type.ASSIGNMENT,
+                            ticket.getId()
+                    );
+                }
+                // Notify all admins
+                notificationService.notifyAllAdmins(
+                        "Ticket \"" + ticketTitle + "\" has been " + statusLabel + " by " + techName,
+                        Notification.Type.ASSIGNMENT,
+                        ticket.getId()
+                );
+            }
+        }
+
         return saved;
     }
 
