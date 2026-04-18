@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ticketService from '../../services/ticketService'
+import { useCountdownTimer } from '../../hooks/useCountdownTimer'
 
 const statusBadgeClass = (status) => {
   const map = {
@@ -8,6 +9,7 @@ const statusBadgeClass = (status) => {
     RESOLVED: 'bg-emerald-100 text-emerald-700',
     CLOSED: 'bg-slate-200 text-slate-700',
     REJECTED: 'bg-red-100 text-red-700',
+    EXPIRED: 'bg-red-600 text-white',
   }
   return map[status] || 'bg-gray-100 text-gray-600'
 }
@@ -23,6 +25,11 @@ function UserRaisedTicketsDashboard() {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const { timeRemaining } = useCountdownTimer(
+    tickets,
+    (ticket) => ticket.deadline
+  )
 
   useEffect(() => {
     let mounted = true
@@ -83,9 +90,26 @@ function UserRaisedTicketsDashboard() {
                     Created: {formatDateTime(ticket.createdAt)}
                   </p>
                 </div>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${statusBadgeClass(ticket.status)}`}>
-                  {ticket.status}
-                </span>
+                <div className="flex gap-2">
+                  {['OPEN', 'IN_PROGRESS'].includes(ticket.status) && timeRemaining[ticket.id] && (
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
+                        timeRemaining[ticket.id].expired
+                          ? 'bg-red-600 text-white'
+                          : timeRemaining[ticket.id].critical
+                          ? 'bg-orange-600 text-white animate-pulse'
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}
+                    >
+                      {timeRemaining[ticket.id].expired ? '⏱ EXPIRED' : timeRemaining[ticket.id].text}
+                    </span>
+                  )}
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${statusBadgeClass(
+                    timeRemaining[ticket.id]?.expired && ['OPEN', 'IN_PROGRESS'].includes(ticket.status) ? 'EXPIRED' : ticket.status
+                  )}`}>
+                    {timeRemaining[ticket.id]?.expired && ['OPEN', 'IN_PROGRESS'].includes(ticket.status) ? 'EXPIRED' : ticket.status}
+                  </span>
+                </div>
               </div>
 
               {ticket.description && (

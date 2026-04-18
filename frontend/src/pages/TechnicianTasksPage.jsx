@@ -21,6 +21,8 @@ function TechnicianTasksPage() {
   const handleLogout = () => {
     authService.logout()
     navigate('/login')
+  }
+
   const handleGoBack = () => {
     navigate('/dashboard')
   }
@@ -51,7 +53,6 @@ function TechnicianTasksPage() {
       </main>
     </div>
   )
-}
 }
 
 export default TechnicianTasksPage

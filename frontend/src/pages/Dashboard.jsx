@@ -15,6 +15,7 @@ function Dashboard() {
   const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
   const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
   const [myTickets, setMyTickets] = useState([])
+  const [myTasks, setMyTasks] = useState([])
   const checked = useRef(false)
 
   const handleLogout = () => {
@@ -68,6 +69,19 @@ function Dashboard() {
     }
   }, [navigate])
 
+  const fetchMyTasks = useCallback(async () => {
+    try {
+      const response = await ticketService.getMyAssignments()
+      setMyTasks(response.data || [])
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        authService.logout()
+        navigate('/login')
+        return
+      }
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (checked.current) return
     checked.current = true
@@ -79,21 +93,28 @@ function Dashboard() {
     setRole(r)
     fetchCatalogues()
     fetchMyTickets()
-  }, [navigate, fetchCatalogues, fetchMyTickets])
+    if (r === 'TECHNICIAN') {
+      fetchMyTasks()
+    }
+  }, [navigate, fetchCatalogues, fetchMyTickets, fetchMyTasks])
 
   const istechnician = role === 'TECHNICIAN'
   const userType = istechnician ? 'Technician' : 'User'
 
+  const assignedTasksCount = String(myTasks.filter(t => t.status === 'OPEN').length).padStart(2, '0')
+  const inProgressCount = String(myTasks.filter(t => t.status === 'IN_PROGRESS').length).padStart(2, '0')
+  const completedCount = String(myTasks.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length).padStart(2, '0')
+
   const quickStats = istechnician
     ? [
-      { label: 'Assigned Tasks', value: '08', accent: 'text-amber-700 bg-amber-50 border-amber-200' },
-      { label: 'In Progress', value: '03', accent: 'text-blue-700 bg-blue-50 border-blue-200' },
-      { label: 'Completed Today', value: '05', accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+      { label: 'Assigned Tasks', value: assignedTasksCount, accent: 'text-amber-700 bg-amber-50 border-amber-200' },
+      { label: 'In Progress', value: inProgressCount, accent: 'text-blue-700 bg-blue-50 border-blue-200' },
+      { label: 'Completed', value: completedCount, accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
     ]
     : [
-      { label: 'Active Requests', value: String(myTickets.length).padStart(2, '0'), accent: 'text-blue-700 bg-blue-50 border-blue-200' },
-      { label: 'Pending Approvals', value: '02', accent: 'text-amber-700 bg-amber-50 border-amber-200' },
-      { label: 'Resolved', value: '16', accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+      { label: 'Active Requests', value: String(myTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length).padStart(2, '0'), accent: 'text-blue-700 bg-blue-50 border-blue-200' },
+      { label: 'Pending Approvals', value: '00', accent: 'text-amber-700 bg-amber-50 border-amber-200' },
+      { label: 'Resolved', value: String(myTickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length).padStart(2, '0'), accent: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
     ]
 
   const quickActions = istechnician
