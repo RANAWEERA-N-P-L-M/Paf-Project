@@ -10,11 +10,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
+/**
+ * Comments on tickets - can be added by users, technicians, and admins
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "technician_assignments")
-public class TechnicianAssignment {
+@Document(collection = "ticket_comments")
+public class Comment {
 
     @Id
     private String id;
@@ -23,23 +26,20 @@ public class TechnicianAssignment {
     private Ticket ticket;
 
     @DBRef
-    private User technician;
+    private User createdBy;
 
-    private Ticket.Status assignmentStatus;
+    private String content;
 
-    private String rejectionReason;
+    private Instant createdAt;
 
-    private Instant assignedAt;
+    private Instant updatedAt;
 
-    private Instant acceptedAt;
+    private CommentType type;
 
-    private Instant rejectedAt;
-
-    private Instant completedAt;
-
-    private Integer priority;
-
-    private Boolean isDuplicate;
-
-    private Integer estimatedHours;
+    public enum CommentType {
+        USER_COMMENT,
+        ADMIN_NOTE,
+        TECHNICIAN_NOTE,
+        SYSTEM_UPDATE
+    }
 }

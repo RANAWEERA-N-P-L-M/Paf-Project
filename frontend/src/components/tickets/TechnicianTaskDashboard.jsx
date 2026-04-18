@@ -10,6 +10,13 @@ const STATUS_COLORS = {
   REJECTED: 'bg-red-100 text-red-700',
 }
 
+const PRIORITY_COLORS = {
+  LOW: 'bg-green-100 text-green-700',
+  MEDIUM: 'bg-yellow-100 text-yellow-700',
+  HIGH: 'bg-red-100 text-red-700',
+  IMMEDIATE: 'bg-red-200 text-red-800',
+}
+
 const normalizeAssignmentStatus = (assignment) =>
   assignment.assignmentStatus || assignment.status || 'OPEN'
 
@@ -26,6 +33,41 @@ function TechnicianTaskDashboard() {
   const [error, setError] = useState('')
   const [selectedTask, setSelectedTask] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState({})
+  const timerRef = useRef(null)
+
+  const calculateTimeRemaining = useCallback((deadline) => {
+    if (!deadline) return null
+    const deadlineTime = new Date(deadline).getTime()
+    const now = new Date().getTime()
+    const remaining = deadlineTime - now
+    
+    if (remaining <= 0) {
+      return { expired: true, text: 'EXPIRED' }
+    }
+    
+    const days = Math.floor(remaining / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+    
+    if (days > 0) {
+      return { expired: false, text: `${days}d ${hours}h` }
+    } else if (hours > 0) {
+      return { expired: false, text: `${hours}h ${minutes}m`, critical: hours < 3 }
+    } else {
+      return { expired: false, text: `${minutes}m`, critical: true }
+    }
+  }, [])
+
+  const updateCountdown = useCallback(() => {
+    setTimeRemaining((prev) => {
+      const updated = {}
+      tasks.forEach((task) => {
+        updated[task.ticketId] = calculateTimeRemaining(task.deadline)
+      })
+      return updated
+    })
+  }, [tasks, calculateTimeRemaining])
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -37,9 +79,14 @@ function TechnicianTaskDashboard() {
         ticketId: task.ticketId || '',
         ticketTitle: task.ticketTitle || 'Untitled Ticket',
         status: normalizeAssignmentStatus(task),
+        priority: task.priority || 'MEDIUM',
+        deadline: task.deadline,
+        slaStatus: task.slaStatus,
+        escalated: task.escalated || false,
         createdAt: task.createdAt,
       }))
       setTasks(taskList)
+      setTimeRemaining({})
     } catch (err) {
       setError(
         err.response?.data?.error || 'Unable to load assigned tasks right now.'
@@ -54,6 +101,14 @@ function TechnicianTaskDashboard() {
     initialized.current = true
     loadTasks()
   }, [loadTasks])
+
+  useEffect(() => {
+    updateCountdown()
+    timerRef.current = setInterval(updateCountdown, 60000) // Update every minute
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [updateCountdown])
 
   const noAssignmentIdCount = useMemo(
     () => tasks.filter((task) => !task.assignmentId).length,
@@ -115,39 +170,67 @@ function TechnicianTaskDashboard() {
         </div>
       ) : (
         <div className="space-y-3">
-          {tasks.map((task) => (
-            <div
-              key={task.assignmentId || task.ticketId}
-              className="border border-borderColor rounded-xl p-4"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-textPrimary">{task.ticketTitle}</p>
-                  <p className="text-xs text-textSecondary">
-                    Created: {task.createdAt ? new Date(task.createdAt).toLocaleString() : '-'}
-                  </p>
+          {tasks.map((task) => {
+            const timeInfo = timeRemaining[task.ticketId]
+            const isExpired = timeInfo?.expired || false
+            const isCritical = timeInfo?.critical || false
+            
+            return (
+              <div
+                key={task.assignmentId || task.ticketId}
+                className={`border rounded-xl p-4 ${isExpired ? 'border-red-300 bg-red-50' : 'border-borderColor'}`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-textPrimary">{task.ticketTitle}</p>
+                    <p className="text-xs text-textSecondary mt-1">
+                      Created: {task.createdAt ? new Date(task.createdAt).toLocaleString() : '-'}
+                    </p>
+                    {task.deadline && (
+                      <p className="text-xs text-textSecondary mt-1">
+                        Deadline: {new Date(task.deadline).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-600'}`}
+                    >
+                      {task.status}
+                    </span>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${PRIORITY_COLORS[task.priority] || 'bg-gray-100 text-gray-600'}`}
+                    >
+                      {task.priority}
+                    </span>
+                    {isExpired ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
+                        ⏱ EXPIRED
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${isCritical ? 'bg-orange-600 text-white animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}
+                      >
+                        {timeInfo?.text || '-'}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span
-                  className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold w-fit ${STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-600'}`}
-                >
-                  {task.status}
-                </span>
-              </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAccept(task)}
-                  disabled={!canAccept(task) || submitting}
-                  className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTask(task)}
-                  disabled={!canReject(task) || submitting}
-                  className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAccept(task)}
+                    disabled={!canAccept(task) || submitting}
+                    className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTask(task)}
+                    disabled={!canReject(task) || submitting}
+                    className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                 >
                   Reject
                 </button>
@@ -169,7 +252,8 @@ function TechnicianTaskDashboard() {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

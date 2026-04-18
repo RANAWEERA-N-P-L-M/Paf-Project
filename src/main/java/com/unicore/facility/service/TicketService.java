@@ -50,7 +50,15 @@ public class TicketService {
         ticket.setTitle(request.getTitle().trim());
         ticket.setDescription(request.getDescription().trim());
         ticket.setStatus(Ticket.Status.OPEN);
-        ticket.setCreatedAt(Instant.now());
+        ticket.setPriority(Ticket.Priority.MEDIUM);
+        ticket.setCategory(Ticket.Category.OTHER);
+        ticket.setSlaStatus(Ticket.SlaStatus.ON_TIME);
+        ticket.setEscalated(false);
+        ticket.setCommentCount(0);
+        Instant now = Instant.now();
+        ticket.setCreatedAt(now);
+        ticket.setUpdatedAt(now);
+        ticket.setDeadline(calculateDeadline(now, Ticket.Priority.MEDIUM));
         ticket.setCreatedBy(createdBy);
 
         return ticketRepository.save(ticket);
@@ -93,8 +101,11 @@ public class TicketService {
             TechnicianAssignment assignment = new TechnicianAssignment();
             assignment.setTicket(ticket);
             assignment.setTechnician(technician);
-            assignment.setStatus(Ticket.Status.OPEN);
+            assignment.setAssignmentStatus(Ticket.Status.OPEN);
             assignment.setRejectionReason(null);
+            assignment.setAssignedAt(Instant.now());
+            assignment.setIsDuplicate(false);
+            assignment.setPriority(newAssignments.size() + 1);
             newAssignments.add(assignment);
         }
 
@@ -144,9 +155,13 @@ public class TicketService {
                     ticket.getTitle(),
                     ticket.getDescription(),
                     ticket.getStatus(),
+                    ticket.getPriority(),
+                    ticket.getCategory(),
                     ticket.getCreatedAt(),
-                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())
-            ));
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
+                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())));
         }
 
         return response;
@@ -179,9 +194,13 @@ public class TicketService {
                     ticket.getTitle(),
                     ticket.getDescription(),
                     ticket.getStatus(),
+                    ticket.getPriority(),
+                    ticket.getCategory(),
                     ticket.getCreatedAt(),
-                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())
-            ));
+                    ticket.getDeadline(),
+                    ticket.getSlaStatus(),
+                    ticket.getEscalated(),
+                    assignmentsByTicketId.getOrDefault(ticket.getId(), List.of())));
         }
         return response;
     }
@@ -234,9 +253,8 @@ public class TicketService {
                     technician != null ? technician.getId() : null,
                     technician != null ? technician.getName() : null,
                     technician != null ? technician.getEmail() : null,
-                    assignment.getStatus(),
-                    assignment.getRejectionReason()
-            );
+                    assignment.getAssignmentStatus(),
+                    assignment.getRejectionReason());
 
             grouped.computeIfAbsent(ticketId, key -> new ArrayList<>()).add(dto);
         }
@@ -266,5 +284,15 @@ public class TicketService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Instant calculateDeadline(Instant createdAt, Ticket.Priority priority) {
+        long hoursToAdd = switch (priority) {
+            case HIGH -> 24;
+            case MEDIUM -> 48;
+            case LOW -> 78;
+            case IMMEDIATE -> 6;
+        };
+        return createdAt.plusSeconds(hoursToAdd * 3600);
     }
 }
