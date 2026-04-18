@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
+import NotificationBell from '../components/NotificationBell'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -193,6 +194,7 @@ function Dashboard() {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <span className="hidden md:inline text-sm text-white/75">
             {istechnician ? '🔧 Technician Portal' : '👤 User Portal'}
           </span>

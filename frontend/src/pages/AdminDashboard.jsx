@@ -5,6 +5,7 @@ import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
 import bookingService from '../services/bookingService'
 import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
+import NotificationBell from '../components/NotificationBell'
 
 function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
@@ -891,6 +892,7 @@ function AdminDashboard() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <button
             onClick={() => setIsMenuOpen((prev) => !prev)}
             className="lg:hidden px-3 py-1.5 bg-white/15 text-white font-semibold text-sm rounded-md hover:bg-white/20 transition duration-200"
