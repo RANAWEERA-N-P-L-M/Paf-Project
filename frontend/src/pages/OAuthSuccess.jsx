@@ -66,8 +66,15 @@ function OAuthSuccess() {
     setError('')
     setLoading(true)
     try {
-      await authService.oauth2Complete(googleEmail, googleName, role)
-      navigate('/login?msg=pending')
+      const res = await authService.oauth2Complete(googleEmail, googleName, role)
+      if (res.data.token) {
+        // USER auto-approved — log in directly
+        authService.saveAuth(res.data.token, res.data.role)
+        navigate('/dashboard', { replace: true })
+      } else {
+        // TECHNICIAN pending admin approval
+        navigate('/login?msg=pending')
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.')
     } finally {

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import adminService from '../services/adminService'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
+import bookingService from '../services/bookingService'
+import AdminTicketDashboard from '../components/tickets/AdminTicketDashboard'
 
 function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard')
@@ -22,6 +24,10 @@ function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [bookings, setBookings] = useState([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [bookingNotes, setBookingNotes] = useState({})
+  const [bookingActionId, setBookingActionId] = useState('')
   const [resetPasswordId, setResetPasswordId] = useState(null)
   const [newPassword, setNewPassword] = useState('')
   const navigate = useNavigate()
@@ -59,6 +65,23 @@ function AdminDashboard() {
     }
   }, [navigate])
 
+  const fetchBookings = useCallback(async () => {
+    setBookingsLoading(true)
+    try {
+      const res = await bookingService.getAllBookings()
+      setBookings(res.data || [])
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        authService.logout()
+        navigate('/login')
+      } else {
+        setError(err.response?.data?.error || 'Failed to load bookings.')
+      }
+    } finally {
+      setBookingsLoading(false)
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
@@ -68,7 +91,8 @@ function AdminDashboard() {
     }
     fetchUsers()
     fetchCatalogues()
-  }, [navigate, fetchUsers, fetchCatalogues])
+    fetchBookings()
+  }, [navigate, fetchUsers, fetchCatalogues, fetchBookings])
 
   const handleApprove = async (id) => {
     try {
@@ -212,6 +236,47 @@ function AdminDashboard() {
     }
   }
 
+  const handleBookingNoteChange = (bookingId, value) => {
+    setBookingNotes((prev) => ({
+      ...prev,
+      [bookingId]: value,
+    }))
+  }
+
+  const handleApproveBooking = async (bookingId) => {
+    setBookingActionId(bookingId)
+    setError('')
+    try {
+      await bookingService.approveBooking(bookingId, bookingNotes[bookingId] || '')
+      setBookingNotes((prev) => ({ ...prev, [bookingId]: '' }))
+      await fetchBookings()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to approve booking.')
+    } finally {
+      setBookingActionId('')
+    }
+  }
+
+  const handleRejectBooking = async (bookingId) => {
+    const reason = (bookingNotes[bookingId] || '').trim()
+    if (!reason) {
+      setError('Reject reason is required.')
+      return
+    }
+
+    setBookingActionId(bookingId)
+    setError('')
+    try {
+      await bookingService.rejectBooking(bookingId, reason)
+      setBookingNotes((prev) => ({ ...prev, [bookingId]: '' }))
+      await fetchBookings()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to reject booking.')
+    } finally {
+      setBookingActionId('')
+    }
+  }
+
   const roleBadge = (role) => {
     const map = {
       ADMIN: 'bg-purple-100 text-purple-700',
@@ -219,6 +284,16 @@ function AdminDashboard() {
       TECHNICIAN: 'bg-yellow-100 text-yellow-700',
     }
     return map[role] ?? 'bg-gray-100 text-gray-600'
+  }
+
+  const bookingStatusBadge = (status) => {
+    const map = {
+      PENDING: 'bg-yellow-100 text-yellow-700',
+      APPROVED: 'bg-green-100 text-green-700',
+      REJECTED: 'bg-red-100 text-red-700',
+      CANCELLED: 'bg-gray-100 text-gray-700',
+    }
+    return map[status] ?? 'bg-gray-100 text-gray-700'
   }
 
   const statusBadge = (status) => {
@@ -254,6 +329,9 @@ function AdminDashboard() {
     if (sectionKey === 'facilities') {
       fetchCatalogues()
     }
+    if (sectionKey === 'bookings') {
+      fetchBookings()
+    }
   }
 
   const summaryCards = [
@@ -268,7 +346,7 @@ function AdminDashboard() {
     {
       key: 'bookings',
       title: 'Total Bookings',
-      count: 0,
+      count: bookings.length,
       accent: 'border-emerald-200 bg-emerald-50',
       textColor: 'text-emerald-700',
       icon: '📅',
@@ -596,6 +674,165 @@ function AdminDashboard() {
     </>
   )
 
+  const renderBookingsSection = () => (
+    <>
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-textPrimary">Bookings</h2>
+          <p className="text-sm text-textSecondary mt-1">Review booking requests and approve or reject with a response.</p>
+          <p className="text-xs text-textSecondary mt-2">
+            {bookings.length} booking{bookings.length !== 1 ? 's' : ''} total
+          </p>
+        </div>
+        <button
+          onClick={fetchBookings}
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition duration-200"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {bookingsLoading ? (
+        <p className="text-sm text-textSecondary">Loading bookings...</p>
+      ) : bookings.length === 0 ? (
+        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
+          <p className="text-textSecondary text-sm">No bookings found.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 md:hidden mb-4">
+            {bookings.map((item) => (
+              <div key={`booking-card-${item.id}`} className="bg-white rounded-lg shadow-sm border border-borderColor p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="font-semibold text-textPrimary text-sm">{item.facilityName}</p>
+                    <p className="text-xs text-textSecondary break-all">{item.userName || item.userEmail || item.userId}</p>
+                  </div>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${bookingStatusBadge(item.status)}`}>
+                    {item.status}
+                  </span>
+                </div>
+
+                <p className="text-xs text-textSecondary">{item.bookingDate} | {item.startTime} - {item.endTime}</p>
+                <p className="text-xs text-textSecondary mt-1">Purpose: {item.purpose}</p>
+
+                {item.status === 'REJECTED' && item.adminResponse && (
+                  <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md p-2 mt-2">
+                    Reason: {item.adminResponse}
+                  </p>
+                )}
+
+                {item.status === 'PENDING' && (
+                  <div className="mt-3 space-y-2">
+                    <input
+                      type="text"
+                      value={bookingNotes[item.id] || ''}
+                      onChange={(e) => handleBookingNoteChange(item.id, e.target.value)}
+                      placeholder="Admin message (required for reject)"
+                      className="w-full px-2 py-1 text-xs border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleApproveBooking(item.id)}
+                        disabled={bookingActionId === item.id}
+                        className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-md disabled:opacity-60"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectBooking(item.id)}
+                        disabled={bookingActionId === item.id}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-md disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-white rounded-lg shadow-md border border-borderColor overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-100 border-b border-borderColor">
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">User</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Facility</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Date</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Time</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Purpose</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-textSecondary">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((item, idx) => (
+                  <tr
+                    key={item.id}
+                    className={`border-b border-borderColor hover:bg-hoverGray transition duration-150 ${idx === bookings.length - 1 ? 'border-none' : ''}`}
+                  >
+                    <td className="px-4 py-3 text-textPrimary">
+                      <p className="font-medium">{item.userName || 'Unknown User'}</p>
+                      <p className="text-xs text-textSecondary">{item.userEmail || item.userId}</p>
+                    </td>
+                    <td className="px-4 py-3 text-textSecondary">{item.facilityName}</td>
+                    <td className="px-4 py-3 text-textSecondary whitespace-nowrap">{item.bookingDate}</td>
+                    <td className="px-4 py-3 text-textSecondary whitespace-nowrap">{item.startTime} - {item.endTime}</td>
+                    <td className="px-4 py-3 text-textSecondary">
+                      <p>{item.purpose}</p>
+                      {item.status === 'REJECTED' && item.adminResponse && (
+                        <p className="mt-1 text-xs text-red-700">Reason: {item.adminResponse}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${bookingStatusBadge(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.status === 'PENDING' ? (
+                        <div className="space-y-2 min-w-[230px]">
+                          <input
+                            type="text"
+                            value={bookingNotes[item.id] || ''}
+                            onChange={(e) => handleBookingNoteChange(item.id, e.target.value)}
+                            placeholder="Message (required for reject)"
+                            className="w-full px-2 py-1 text-xs border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => handleApproveBooking(item.id)}
+                              disabled={bookingActionId === item.id}
+                              className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-md disabled:opacity-60"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectBooking(item.id)}
+                              disabled={bookingActionId === item.id}
+                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-md disabled:opacity-60"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-textSecondary">
+                          {item.adminResponse ? `Response: ${item.adminResponse}` : 'No action available'}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  )
+
   const renderMainDashboard = () => (
     <>
       <h2 className="text-2xl font-bold text-textPrimary mb-6">Main Dashboard</h2>
@@ -628,10 +865,10 @@ function AdminDashboard() {
       return renderFacilitiesSection()
     }
     if (activeSection === 'bookings') {
-      return renderPlaceholder('Bookings', 'View and manage all booking records on this page.')
+      return renderBookingsSection()
     }
     if (activeSection === 'tickets') {
-      return renderPlaceholder('Tickets', 'Track support and maintenance tickets here.')
+      return <AdminTicketDashboard technicians={users} />
     }
     return renderMainDashboard()
   }

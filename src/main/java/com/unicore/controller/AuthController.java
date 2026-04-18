@@ -30,8 +30,8 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid role."));
         }
-        String message = authService.completeOAuth2Register(email, name, role);
-        return ResponseEntity.ok(Map.of("message", message));
+        Map<String, String> result = authService.completeOAuth2Register(email, name, role);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/register")

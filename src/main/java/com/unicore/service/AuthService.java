@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -33,13 +35,20 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
         user.setProvider(User.Provider.LOCAL);
-        user.setStatus(User.Status.PENDING);
+        // Technicians require admin approval; regular users are auto-approved
+        if (request.getRole() == User.Role.TECHNICIAN) {
+            user.setStatus(User.Status.PENDING);
+        } else {
+            user.setStatus(User.Status.APPROVED);
+        }
 
         userRepository.save(user);
-        return "Registration successful. Await admin approval.";
+        return request.getRole() == User.Role.TECHNICIAN
+                ? "Registration successful. Await admin approval."
+                : "Registration successful. You can now login.";
     }
 
-    public String completeOAuth2Register(String email, String name, User.Role role) {
+    public Map<String, String> completeOAuth2Register(String email, String name, User.Role role) {
         if (role == null || role == User.Role.ADMIN) {
             throw new RuntimeException("Invalid role. Only USER or TECHNICIAN allowed.");
         }
@@ -51,9 +60,16 @@ public class AuthService {
         user.setName(name);
         user.setRole(role);
         user.setProvider(User.Provider.GOOGLE);
-        user.setStatus(User.Status.PENDING);
-        userRepository.save(user);
-        return "Registration submitted. Waiting for admin approval.";
+        if (role == User.Role.TECHNICIAN) {
+            user.setStatus(User.Status.PENDING);
+            userRepository.save(user);
+            return Map.of("message", "Registration submitted. Waiting for admin approval.");
+        } else {
+            user.setStatus(User.Status.APPROVED);
+            userRepository.save(user);
+            String token = jwtUtil.generateToken(email, role.name());
+            return Map.of("token", token, "role", role.name(), "email", email);
+        }
     }
 
     public LoginResponse login(LoginRequest request) {

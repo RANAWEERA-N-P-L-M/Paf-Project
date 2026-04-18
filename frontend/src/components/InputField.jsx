@@ -1,4 +1,4 @@
-function InputField({ label, type = 'text', value, onChange, placeholder, required, name }) {
+function InputField({ label, type = 'text', value, onChange, placeholder, required, name, ...rest }) {
   return (
     <div className="mb-4">
       {label && (
@@ -13,6 +13,7 @@ function InputField({ label, type = 'text', value, onChange, placeholder, requir
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        {...rest}
         className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textPrimary placeholder-textSecondary focus:outline-none focus:ring-2 focus:ring-accent transition duration-200"
       />
     </div>

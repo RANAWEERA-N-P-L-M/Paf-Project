@@ -4,6 +4,11 @@ import Register from '../pages/Register'
 import OAuthSuccess from '../pages/OAuthSuccess'
 import AdminDashboard from '../pages/AdminDashboard'
 import Dashboard from '../pages/Dashboard'
+import BookingForm from '../pages/BookingForm'
+import MyBookings from '../pages/MyBookings'
+import CreateTicketPage from '../pages/CreateTicketPage'
+import TechnicianTasksPage from '../pages/TechnicianTasksPage'
+import MyRaisedTicketsPage from '../pages/MyRaisedTicketsPage'
 
 function AppRoutes() {
   return (
@@ -15,6 +20,11 @@ function AppRoutes() {
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/booking/:facilityId" element={<BookingForm />} />
+        <Route path="/my-bookings" element={<MyBookings />} />
+        <Route path="/tickets/create" element={<CreateTicketPage />} />
+        <Route path="/tickets/my" element={<MyRaisedTicketsPage />} />
+        <Route path="/technician/tasks" element={<TechnicianTasksPage />} />
       </Routes>
     </BrowserRouter>
   )
