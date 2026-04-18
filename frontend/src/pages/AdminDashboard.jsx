@@ -35,8 +35,6 @@ function AdminDashboard() {
     description: '',
     status: 'ACTIVE',
   })
-  const [catalogueSearchInput, setCatalogueSearchInput] = useState('')
-  const [catalogueSearchTerm, setCatalogueSearchTerm] = useState('')
   const [isEquipmentDropdownOpen, setIsEquipmentDropdownOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -446,10 +444,28 @@ function AdminDashboard() {
     },
   ]
 
-  const normalizedCatalogueSearch = catalogueSearchTerm.trim().toLowerCase()
-  const filteredCatalogues = normalizedCatalogueSearch
-    ? catalogues.filter((item) => (item.name || '').toLowerCase().includes(normalizedCatalogueSearch))
-    : catalogues
+  const mostBookedResources = Object.values(
+    bookings.reduce((accumulator, booking) => {
+      if (booking.status !== 'APPROVED') {
+        return accumulator
+      }
+
+      const resourceKey = booking.facilityId || booking.facilityName || 'Unknown Resource'
+      const currentItem = accumulator[resourceKey] || {
+        key: resourceKey,
+        name: booking.facilityName || 'Unknown Resource',
+        count: 0,
+      }
+
+      currentItem.count += 1
+      accumulator[resourceKey] = currentItem
+      return accumulator
+    }, {})
+  )
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 5)
+
+  const highestResourceBookingCount = mostBookedResources[0]?.count || 0
 
   const renderUsersSection = () => (
     <div className="flex flex-col h-full">
@@ -693,13 +709,9 @@ function AdminDashboard() {
         <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
           <p className="text-textSecondary text-sm">No catalogue added yet. Click "Add Catalogue" to create your first one.</p>
         </div>
-      ) : filteredCatalogues.length === 0 ? (
-        <div className="bg-slate-50 border border-borderColor rounded-xl p-8 text-center">
-          <p className="text-textSecondary text-sm">No catalogues found for that class name.</p>
-        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredCatalogues.map((item, idx) => (
+          {catalogues.map((item, idx) => (
             <div
               key={item.id || item._id || `${item.name}-${idx}`}
               className="group border border-borderColor rounded-2xl bg-white p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition duration-200"
@@ -950,6 +962,50 @@ function AdminDashboard() {
             </button>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 bg-white border border-borderColor rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-textPrimary">Most Booked Resources</h3>
+            <p className="text-sm text-textSecondary mt-1">Top resources based on approved bookings.</p>
+          </div>
+          <span className="text-xs font-semibold text-textSecondary bg-slate-50 border border-borderColor rounded-full px-3 py-1">
+            Top 5
+          </span>
+        </div>
+
+        {mostBookedResources.length === 0 ? (
+          <div className="text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg p-3">
+            No approved bookings yet to calculate resource usage.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {mostBookedResources.map((resource) => {
+              const barWidth = highestResourceBookingCount > 0
+                ? Math.max(12, Math.round((resource.count / highestResourceBookingCount) * 100))
+                : 0
+
+              return (
+                <div key={resource.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-textPrimary truncate">{resource.name}</p>
+                      <p className="text-xs text-textSecondary">{resource.count} approved booking{resource.count !== 1 ? 's' : ''}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-primary">{resource.count}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </>
   )
