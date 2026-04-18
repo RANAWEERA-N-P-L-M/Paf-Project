@@ -39,8 +39,8 @@ function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
   }, [technicians])
 
   const onSelectChange = (event) => {
-    const values = Array.from(event.target.selectedOptions).map((opt) => opt.value)
-    setSelectedIds(values)
+    const value = event.target.value
+    setSelectedIds(value ? [value] : [])
   }
 
   const handleAssign = async () => {
@@ -70,13 +70,12 @@ function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
       )}
 
       <select
-        multiple
-        value={selectedIds}
+        value={selectedIds[0] || ''}
         onChange={onSelectChange}
         className="w-full border border-borderColor rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-        size={Math.min(4, Math.max(2, availableTechnicians.length || 2))}
         disabled={loadingUsers || assigning}
       >
+        <option value="">-- Select a technician --</option>
         {availableTechnicians.map((tech) => (
           <option key={tech.id} value={tech.id}>
             {tech.name} ({tech.email})
@@ -86,7 +85,7 @@ function AssignTechniciansPanel({ ticketId, technicians = [], onAssigned }) {
 
       {selectedIds.length > 0 && (
         <p className="text-[11px] text-textSecondary mt-2">
-          Selected: {selectedIds.length} technician{selectedIds.length !== 1 ? 's' : ''}
+          Selected: {availableTechnicians.find(t => t.id === selectedIds[0])?.name || 'Unknown'}
         </p>
       )}
 
