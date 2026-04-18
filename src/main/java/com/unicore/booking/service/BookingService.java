@@ -51,7 +51,7 @@ public class BookingService {
             List.of(Booking.Status.PENDING, Booking.Status.APPROVED),
             null,
             "Booking conflict: this facility already has a booking request or approved booking in the selected time range.");
-        validateAttendees(request.getAttendees(), catalogue.getCapacity());
+        validateAttendees(request.getAttendees(), parseCapacity(catalogue.getCapacity()));
 
         Booking booking = new Booking();
         booking.setUserId(user.getId());
@@ -270,5 +270,14 @@ public class BookingService {
 
     private String trimToEmpty(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private Integer parseCapacity(String capacity) {
+        if (capacity == null || capacity.trim().isEmpty()) return null;
+        try {
+            return Integer.parseInt(capacity.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
