@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import notificationService from '../services/notificationService'
+import authService from '../services/authService'
 
 const POLL_INTERVAL_MS = 30_000
 
@@ -14,7 +16,35 @@ function timeAgo(isoString) {
   return `${days}d ago`
 }
 
+function getNotificationLink(notification) {
+  const role = authService.getRole()
+  if (role === 'ADMIN') {
+    switch (notification.type) {
+      case 'BOOKING':
+        return '/admin?section=bookings'
+      case 'TICKET':
+        return '/admin?section=tickets'
+      case 'USER':
+        return '/admin?section=users'
+      default:
+        return '/admin'
+    }
+  }
+  switch (notification.type) {
+    case 'BOOKING':
+      return '/my-bookings'
+    case 'TICKET':
+      return '/tickets/my'
+    case 'ASSIGNMENT':
+      return '/technician/tasks'
+    case 'USER':
+    default:
+      return '/dashboard'
+  }
+}
+
 function NotificationBell() {
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState([])
   const [open, setOpen] = useState(false)
@@ -72,15 +102,19 @@ function NotificationBell() {
   }
 
   const handleMarkRead = async (notification) => {
-    if (notification.read) return
     try {
-      await notificationService.markRead(notification.id)
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-      )
-      setUnreadCount((prev) => Math.max(0, prev - 1))
+      if (!notification.read) {
+        await notificationService.markRead(notification.id)
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+        )
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+      }
     } catch {
       // ignore
+    } finally {
+      setOpen(false)
+      navigate(getNotificationLink(notification))
     }
   }
 

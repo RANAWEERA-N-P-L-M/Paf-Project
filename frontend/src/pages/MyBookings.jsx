@@ -37,8 +37,12 @@ function MyBookings() {
     initialized.current = true
 
     const role = authService.getRole()
-    if (!role || role === 'ADMIN') {
+    if (!role) {
       navigate('/login', { replace: true })
+      return
+    }
+    if (role === 'ADMIN') {
+      navigate('/admin', { replace: true })
       return
     }
 

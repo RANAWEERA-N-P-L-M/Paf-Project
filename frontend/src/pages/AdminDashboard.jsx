@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import adminService from '../services/adminService'
 import authService from '../services/authService'
 import catalogueService from '../services/catalogueService'
@@ -19,7 +19,8 @@ function AdminDashboard() {
     'Meeting Room': ['1-5', '5-10'],
   }
 
-  const [activeSection, setActiveSection] = useState('dashboard')
+  const [searchParams] = useSearchParams()
+  const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'dashboard')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [users, setUsers] = useState([])
   const [catalogues, setCatalogues] = useState([])
@@ -126,6 +127,14 @@ function AdminDashboard() {
     fetchBookings()
     fetchTickets()
   }, [navigate, fetchUsers, fetchCatalogues, fetchBookings, fetchTickets])
+
+  // Sync active section when navigating via ?section= query param (e.g. from notifications)
+  useEffect(() => {
+    const section = searchParams.get('section')
+    if (section) {
+      setActiveSection(section)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
