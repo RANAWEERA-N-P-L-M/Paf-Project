@@ -34,13 +34,13 @@ function StatusBadge({ status }) {
 
 function StatCard({ label, value, icon, gradient }) {
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-borderColor shadow-sm flex items-center gap-4">
-      <div className={`w-11 h-11 rounded-xl ${gradient} flex items-center justify-center text-white text-xl shadow`}>
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-borderColor shadow-sm flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
+      <div className={`w-12 h-12 rounded-2xl ${gradient} flex items-center justify-center text-white text-2xl shadow-md shrink-0`}>
         {icon}
       </div>
       <div>
-        <p className="text-2xl font-extrabold text-textPrimary leading-none">{value}</p>
-        <p className="text-xs text-textSecondary mt-1">{label}</p>
+        <p className="text-3xl font-extrabold text-textPrimary leading-none">{value}</p>
+        <p className="text-xs text-textSecondary mt-1.5 font-medium">{label}</p>
       </div>
     </div>
   )
@@ -51,14 +51,16 @@ function ActionBtn({ icon, label, sub, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-xl border border-borderColor hover:border-accent/50 hover:bg-accent/5 transition group text-left"
+      className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-borderColor hover:border-accent/40 hover:shadow-sm bg-white hover:bg-orange-50/60 transition-all duration-200 group text-left"
     >
-      <span className="text-xl shrink-0">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-textPrimary group-hover:text-accent transition truncate">{label}</p>
-        <p className="text-xs text-textSecondary truncate">{sub}</p>
+      <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-accent/20 flex items-center justify-center text-lg transition-all duration-200 shrink-0">
+        {icon}
       </div>
-      <span className="text-textSecondary group-hover:text-accent text-sm shrink-0">›</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-textPrimary group-hover:text-accent transition-colors truncate">{label}</p>
+        <p className="text-[11px] text-textSecondary truncate leading-tight mt-0.5">{sub}</p>
+      </div>
+      <span className="text-textSecondary/50 group-hover:text-accent text-lg shrink-0 group-hover:translate-x-0.5 transition-transform">›</span>
     </button>
   )
 }
@@ -668,15 +670,25 @@ function Dashboard() {
   const renderHome = () => (
     <>
       {/* Welcome banner */}
-      <div className="bg-gradient-to-r from-primary to-[#3d5260] rounded-2xl p-5 sm:p-6 mb-6 text-white">
-        <h3 className="text-xl font-bold">
-          Welcome back{currentUser.name ? `, ${currentUser.name}` : ''}! 👋
-        </h3>
-        <p className="text-white/65 text-sm mt-1">
-          {isTech
-            ? 'Check your assigned maintenance tasks and update progress.'
-            : 'Submit requests, book facilities and track your work.'}
-        </p>
+      <div className="bg-gradient-to-r from-primary via-[#3a4f5c] to-[#2F3E46] rounded-2xl p-5 sm:p-6 mb-6 text-white relative">
+        {/* decorative circles clipped inside the banner */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-1/3 w-24 h-24 rounded-full bg-white/5 translate-y-1/2" />
+        </div>
+        <div className="relative">
+          <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1.5">
+            {isTech ? '🔧 Technician Portal' : '👤 User Portal'}
+          </p>
+          <h3 className="text-xl sm:text-2xl font-bold leading-snug">
+            Welcome back{currentUser.name ? `, ${currentUser.name}` : ''}! 👋
+          </h3>
+          <p className="text-white/65 text-sm mt-1.5 leading-relaxed">
+            {isTech
+              ? 'Check your assigned maintenance tasks and update progress.'
+              : 'Submit requests, book facilities and track your work.'}
+          </p>
+        </div>
       </div>
 
       {/* Stats */}
@@ -700,7 +712,10 @@ function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl border border-borderColor shadow-sm p-5">
-          <h4 className="text-sm font-bold text-textPrimary mb-4">Quick Actions</h4>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-lg bg-accent/20 flex items-center justify-center text-sm">⚡</div>
+            <h4 className="text-sm font-bold text-textPrimary">Quick Actions</h4>
+          </div>
           <div className="space-y-2">
             {isTech ? (
                 <ActionBtn icon="🛠️" label="My Assigned Tasks" sub="Update task status and progress" onClick={() => setActiveSection('tasks')} />
@@ -720,7 +735,10 @@ function Dashboard() {
           {isTech ? (
             <>
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-textPrimary">Recent Assignments</h4>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-sm">📋</div>
+                  <h4 className="text-sm font-bold text-textPrimary">Recent Assignments</h4>
+                </div>
                 <button type="button" onClick={() => setActiveSection('tasks')} className="text-xs text-accent font-semibold hover:underline">View all →</button>
               </div>
               {dataLoading ? (
@@ -750,7 +768,10 @@ function Dashboard() {
           ) : (
             <>
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-textPrimary">Recent Bookings</h4>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center text-sm">📅</div>
+                  <h4 className="text-sm font-bold text-textPrimary">Recent Bookings</h4>
+                </div>
                 <button type="button" onClick={() => setActiveSection('bookings')} className="text-xs text-accent font-semibold hover:underline">View all →</button>
               </div>
               {dataLoading ? (
@@ -801,10 +822,11 @@ function Dashboard() {
     <div className="h-screen flex flex-col bg-bgLight overflow-hidden">
 
       {/* Top nav – matches admin style */}
-      <nav className="bg-primary text-white px-4 sm:px-6 py-3 flex items-center justify-between shadow-md shrink-0">
+      <nav className="bg-gradient-to-r from-primary to-[#3a4f5c] text-white px-4 sm:px-6 py-3 flex items-center justify-between shadow-md shrink-0">
         <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-sm font-bold border border-white/20 shrink-0">U</div>
           <h1 className="text-lg sm:text-xl font-bold tracking-tight">UniCore</h1>
-          <span className="hidden sm:inline text-xs px-2 py-1 rounded-full bg-white/20">
+          <span className="hidden sm:inline text-xs px-2.5 py-1 rounded-full bg-white/20 font-medium border border-white/15">
             {activeNavLabel}
           </span>
         </div>
@@ -820,7 +842,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={handleLogout}
-            className="px-3 sm:px-4 py-1.5 bg-white text-primary font-semibold text-sm rounded-md hover:bg-hoverGray transition duration-200 active:scale-95"
+            className="px-3 sm:px-4 py-1.5 bg-white text-primary font-semibold text-sm rounded-lg hover:bg-orange-50 hover:text-accent transition-all duration-200 active:scale-95 shadow-sm"
           >
             Logout
           </button>
@@ -833,11 +855,31 @@ function Dashboard() {
 
           {/* Sidebar – white card, collapses on mobile */}
           <aside className={`${sidebarOpen ? 'block mb-1 lg:mb-0' : 'hidden lg:block'} lg:h-full overflow-hidden`}>
-            <div className="bg-white border border-borderColor rounded-2xl shadow-sm p-4 h-full overflow-y-auto">
-              <p className="px-3 pb-3 text-xs uppercase tracking-wide text-textSecondary font-semibold border-b border-borderColor">
+            <div className="bg-white border border-borderColor rounded-2xl shadow-sm p-4 h-full overflow-y-auto flex flex-col">
+
+              {/* User profile section */}
+              <div className="flex items-center gap-3 p-3 mb-3 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-borderColor">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                  {currentUser.name
+                    ? currentUser.name.charAt(0).toUpperCase()
+                    : currentUser.email
+                    ? currentUser.email.charAt(0).toUpperCase()
+                    : 'U'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-textPrimary truncate leading-tight">
+                    {currentUser.name || currentUser.email || 'User'}
+                  </p>
+                  <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mt-0.5 ${isTech ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {isTech ? 'Technician' : 'User'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="px-3 pb-2 text-[10px] uppercase tracking-wider text-textSecondary font-bold border-b border-borderColor">
                 Navigation
               </p>
-              <nav className="space-y-2 mt-3">
+              <nav className="space-y-1 mt-2 flex-1">
                 {navItems.map(item => {
                   const isActive = activeSection === item.id
                   return (
@@ -845,14 +887,15 @@ function Dashboard() {
                       key={item.id}
                       type="button"
                       onClick={() => handleNavClick(item)}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition duration-150 ${
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 flex items-center gap-2.5 ${
                         isActive
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'text-textSecondary bg-slate-50 hover:bg-hoverGray hover:text-textPrimary'
+                          ? 'bg-gradient-to-r from-primary to-[#3d5260] text-white shadow-sm'
+                          : 'text-textSecondary hover:bg-slate-50 hover:text-textPrimary'
                       }`}
                     >
-                      <span className="mr-3" aria-hidden="true">{item.icon}</span>
-                      {item.label}
+                      <span className={`text-base ${isActive ? '' : 'opacity-70'}`} aria-hidden="true">{item.icon}</span>
+                      <span className="flex-1">{item.label}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />}
                     </button>
                   )
                 })}

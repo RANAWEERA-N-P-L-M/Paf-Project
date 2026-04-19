@@ -107,12 +107,32 @@ function TechnicianTaskDashboard() {
     runAction(() => ticketService.updateTaskStatus(task.assignmentId, 'CLOSED'))
 
   return (
-    <div className="bg-white border border-borderColor rounded-2xl shadow-sm p-5 sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold text-textPrimary">My Assigned Tasks</h2>
-        <p className="text-sm text-textSecondary mt-1">
-          Accept or reject tasks, then move status through IN_PROGRESS, RESOLVED, and CLOSED.
-        </p>
+    <div className="bg-gradient-to-b from-slate-50 to-white border border-borderColor rounded-2xl shadow-sm p-5 sm:p-6">
+      <div className="mb-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-xl font-bold text-textPrimary flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-base shrink-0">🛠️</span>
+              My Assigned Tasks
+            </h2>
+            <p className="text-sm text-textSecondary mt-1 ml-10">
+              Accept or reject tasks, then move status through IN_PROGRESS, RESOLVED, and CLOSED.
+            </p>
+          </div>
+          {!loading && tasks.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              <span className="px-2.5 py-1 rounded-xl bg-blue-50 border border-blue-100 text-xs font-bold text-blue-700">
+                {tasks.filter(t => t.status === 'OPEN').length} Open
+              </span>
+              <span className="px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-100 text-xs font-bold text-amber-700">
+                {tasks.filter(t => t.status === 'IN_PROGRESS').length} In Progress
+              </span>
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-100 text-xs font-bold text-emerald-700">
+                {tasks.filter(t => t.status === 'RESOLVED').length} Resolved
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -128,10 +148,14 @@ function TechnicianTaskDashboard() {
       )}
 
       {loading ? (
-        <p className="text-sm text-textSecondary">Loading tasks...</p>
+        <div className="flex items-center justify-center py-14 text-textSecondary text-sm gap-2">
+          <span className="animate-spin text-base">⏳</span> Loading tasks…
+        </div>
       ) : tasks.length === 0 ? (
-        <div className="text-sm text-textSecondary bg-slate-50 border border-borderColor rounded-lg p-3">
-          No assigned tasks found.
+        <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl">🛠️</div>
+          <p className="text-textPrimary font-semibold">No assigned tasks found.</p>
+          <p className="text-sm text-textSecondary">When tasks are assigned to you, they'll appear here.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -140,11 +164,21 @@ function TechnicianTaskDashboard() {
             const isExpired = timeInfo?.expired || false
             const isCritical = timeInfo?.critical || false
             const isEffectivelyExpired = isExpired && ['OPEN', 'IN_PROGRESS'].includes(task.status)
+
+            const priorityBorderMap = {
+              LOW: 'border-l-4 border-l-green-400',
+              MEDIUM: 'border-l-4 border-l-yellow-400',
+              HIGH: 'border-l-4 border-l-orange-400',
+              IMMEDIATE: 'border-l-4 border-l-red-500',
+            }
+            const priorityBorder = isEffectivelyExpired
+              ? 'border-l-4 border-l-red-500'
+              : (priorityBorderMap[task.priority] || 'border-l-4 border-l-slate-300')
             
             return (
               <div
                 key={task.assignmentId || task.ticketId}
-                className={`border rounded-xl p-4 ${isEffectivelyExpired ? 'border-red-300 bg-red-50' : 'border-borderColor'}`}
+                className={`border rounded-xl p-4 ${priorityBorder} ${isEffectivelyExpired ? 'border-red-300 bg-red-50/60' : 'border-borderColor bg-white hover:shadow-sm'} transition-shadow duration-200`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                   <div className="flex-1">
@@ -180,41 +214,41 @@ function TechnicianTaskDashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-borderColor mt-1">
                   <button
                     type="button"
                     onClick={() => handleAccept(task)}
                     disabled={!canAccept(task) || submitting}
-                    className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
-                    Accept
+                    ✓ Accept
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedTask(task)}
                     disabled={!canReject(task) || submitting}
-                    className="px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                >
-                  Reject
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMoveResolved(task)}
-                  disabled={!canMoveToResolved(task) || submitting}
-                  className="px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                >
-                  Mark Resolved
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMoveClosed(task)}
-                  disabled={!canMoveToClosed(task) || submitting}
-                  className="px-3 py-1.5 rounded-md bg-slate-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                >
-                  Close
-                </button>
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold hover:bg-red-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    ✕ Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveResolved(task)}
+                    disabled={!canMoveToResolved(task) || submitting}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                  >
+                    ✔ Mark Resolved
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveClosed(task)}
+                    disabled={!canMoveToClosed(task) || submitting}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    ✓ Close
+                  </button>
+                </div>
               </div>
-            </div>
             )
           })}
         </div>
